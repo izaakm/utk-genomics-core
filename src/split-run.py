@@ -71,6 +71,11 @@ def main():
         type=_path,
         help="Path to project directory, eg 'projects/gensvc'"
     )
+    parser.add_argument(
+        '--yes',
+        action='store_true',
+        help="Reply 'yes' to all questions (ie, copy all of the data)."
+    )
     # parser.add_argument('-v', '--verbose', action='store_true')  # on/off flag
     parser.add_argument('--debug', action='store_true')  # on/off flag
 
@@ -136,29 +141,36 @@ def main():
             print('source: ', source_path)
             print('dest  : ', dest_path)
 
-            # [TODO] Prompt to copy [???]
-            response = input('Do you want to copy "source" to "dest" (above): [Y/n/q] ')
-            response = response.lower()
-            if response.startswith('q'):
-                print('Quitting')
-                return 1
-            elif response.startswith('y'):
-                # print(source_path, '->', dest_path)
-                dest_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_path, dest_path)
-                
-                source_shasum = shasum(source_path)
-                dest_shasum = shasum(dest_path)
-                print(source_shasum, source_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
-                print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
-
-                if not source_shasum == dest_shasum:
-                    print('[WARNING] Checksums do not match (see above).')
-                
-                with open(checksums_filepath, 'a') as f:
-                    print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP, file=f)
+            if dest_path.exists():
+                print('Destination already exists; skipping.')
             else:
-                print('*** SKIPPED ***')
+                # Prompt to copy.
+                if args.yes:
+                    response = 'y'
+                else:
+                    response = input('Do you want to copy "source" to "dest" (above): [Y/n/q] ')
+                    response = response.lower()
+
+                if response.startswith('q'):
+                    print('Quitting')
+                    return 1
+                elif response.startswith('y'):
+                    # print(source_path, '->', dest_path)
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source_path, dest_path)
+                    
+                    source_shasum = shasum(source_path)
+                    dest_shasum = shasum(dest_path)
+                    print(source_shasum, source_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
+                    print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
+
+                    if not source_shasum == dest_shasum:
+                        print('[WARNING] Checksums do not match (see above).')
+                    
+                    # with open(checksums_filepath, 'a') as f:
+                    #     print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP, file=f)
+                else:
+                    print('*** SKIPPED ***')
     return 0
 
 
