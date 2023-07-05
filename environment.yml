@@ -1,0 +1,13 @@
+name: gensvc
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - ca-certificates
+  - certifi
+  - ipykernel
+  - openssl
+  - pandas
+  - python
+  - sample-sheet
