@@ -1,0 +1,64 @@
+digraph g {
+    fontname="Helvetica,Arial,sans-serif";
+    newrank=true;
+    splines=ortho;
+    # overlap=scale;
+    # rankdir=LR;
+    node [fontname="Helvetica,Arial,sans-serif",shape=rectangle]
+    edge [fontname="Helvetica,Arial,sans-serif",constraint=false]
+
+    subgraph cluster_research_group {
+        label="Research Group";
+        rank=min;
+        pi [label="Principal Investigator"]
+        wet_lab_scientist [label="Wet Lab Scientist"]
+        bioinformatician [label="Bioinformatician"]
+    }
+
+    subgraph cluster_genomics_core {
+        label="Genomics Core";
+        rank=min;
+        sequencing [label="Illumina Sequencing"]
+    }
+
+    subgraph cluster_isaacng {
+        label="ISAAC-NG";
+        subgraph cluster_project_directory {
+            newrank=true;
+            label="User's Project Directory"
+            copy_of_processed_data [label="Fastq"]
+        }
+        subgraph cluster_gensvc {
+            label="gensvc"
+            rank=same;
+            raw_data [label="Raw Data (BCL/Fastq)"]
+            processed_data [label="Fastq"]
+        }
+        # subgraph cluster_tmp {
+        #     label="tmp storage"
+        #     tar_raw_data [label="Tar of Raw Data"]
+        # }
+    }
+
+    subgraph cluster_archival_storage {
+        label="Archival Storage (Tape Backup)"
+        archive_of_raw_data [label="Tar of Raw Data"]
+    }
+
+    subgraph cluster_globus {
+        label="Globus"
+        link_to_processed_data [label="Fastq"]
+    }
+
+
+    # Edges
+    wet_lab_scientist -> sequencing [constraint=true] ;
+    sequencing -> raw_data [constraint=true] ;
+    raw_data -> processed_data;
+    # raw_data -> tar_raw_data [constraint=true] ;
+    # tar_raw_data -> archive_of_raw_data [constraint=true] ;
+    raw_data -> archive_of_raw_data [constraint=true] ;
+    processed_data -> copy_of_processed_data [constraint=true] ;
+    copy_of_processed_data -> bioinformatician ;
+    processed_data -> link_to_processed_data [constraint=true] ;
+}
