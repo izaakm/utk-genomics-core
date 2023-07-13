@@ -31,19 +31,19 @@ def count_barcodes(path):
         #         # Not sequence identifier.
         #         continue
 
-        # # Use islice instead.
-        # for line in islice(fastq, 0, None, 4):
-        #     # Sequence identifer (Field 1 of 4)
-        #     # print('Checking line for barcode:', line)
-        #     bc = line.decode("utf-8").split(':')[-1].strip()
-        #     barcodes.update([bc])
-
-        # Check the actual sequence for barcode.
-        for line in islice(fastq, 1, None, 4):
+        # Use islice instead.
+        for line in islice(fastq, 0, None, 4):
             # Sequence identifer (Field 1 of 4)
             # print('Checking line for barcode:', line)
-            bc = line.decode("utf-8")[:10]
+            bc = line.decode("utf-8").split(':')[-1].strip()
             barcodes.update([bc])
+
+        # # Check the actual sequence for barcode.
+        # for line in islice(fastq, 1, None, 4):
+        #     # Sequence identifer (Field 1 of 4)
+        #     # print('Checking line for barcode:', line)
+        #     bc = line.decode("utf-8")[:10]
+        #     barcodes.update([bc])
 
     # total = sum(barcodes.values())
     # for k, v in sorted(barcodes.items(), key=itemgetter(1)):
