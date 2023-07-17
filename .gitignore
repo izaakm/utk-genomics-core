@@ -2,6 +2,7 @@ bin
 notebooks
 .ipynb_checkpoints
 *.svg
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
