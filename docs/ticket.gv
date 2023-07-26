@@ -1,0 +1,32 @@
+digraph g {
+    /* Nodes */
+    e1 [label="END: Request UT NetID [???]"]
+    e2 [label="END: Request ISAAC Project"]
+    e3 [label="END: Request User account"]
+
+    isaac_or_globus [label="Q: Do you want to access your data via ISAAC or Globus?"]
+
+    do_you_have_a_ut_netid [label="Q: Do you have a UT NetID?"]
+    do_you_have_a_project [label="Q: Do you have an ISAAC project?"]
+
+    enter_globusid [label="INPUT: Enter Globus ID or email address"]
+    enter_netid [label="INPUT: Enter NetID"]
+    enter_project [label="INPUT: Enter Project ID"]
+
+    isaac_user_account [label="Q: Do you have an ISAAC User account?"]
+
+    /* Edges */
+    isaac_or_globus -> enter_globusid [label="Globus"]
+    isaac_or_globus -> do_you_have_a_ut_netid [label="ISAAC"]
+
+    do_you_have_a_ut_netid -> e1 [label="No"]
+    do_you_have_a_ut_netid -> enter_netid [label="Yes"]
+
+    enter_netid -> isaac_user_account
+
+    isaac_user_account -> e3 [label="No"]
+    isaac_user_account -> do_you_have_a_project [label="Yes"]
+
+    do_you_have_a_project -> e2 [label="No"]
+    do_you_have_a_project -> enter_project [label="Yes"]
+}
