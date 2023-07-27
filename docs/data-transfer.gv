@@ -1,0 +1,34 @@
+digraph g {
+    user -> sample -> genomics_core -> {
+        novaseq
+        miseq
+        samplesheet
+    }
+    novaseq -> bcl
+    subgraph cluster_datadir {
+        label="datadir"
+        bcl
+        samplesheet
+    }
+
+    subgraph cluster_processed {
+        label="processed"
+        fastq
+    }
+
+    {
+        bcl
+        samplesheet
+    }
+    -> bcl2fastq ;
+    bcl2fastq -> fastq [label="Convert AND demultiplex!"]
+
+    transfer_script
+    -> samplesheet
+    -> for_each_sample
+    -> check_Sample_Project ;
+    check_Sample_Project -> is_valid_project
+    is_valid_project -> copy_fastq [label="yes"]
+    is_valid_project -> stop [label="no"]
+    copy_fastq -> fastq -> lustre_projectid
+}
