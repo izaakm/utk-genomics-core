@@ -45,12 +45,67 @@ def shasum(path, buf_size=65536):
 
     return sha1.hexdigest()
 
+
+def get_samples(sample_sheet):
+    return pd.DataFrame([_sample.to_json() for _sample in sample_sheet])
+
+
+def display_unique(sample_sheet, columns=None):
+    df = get_samples(sample_sheet)
+    view = df[columns].drop_duplicates().sort_values(columns)
+    print(view.to_string(index=False))
+
+
+def check_samples(sample_sheet, fastq_dir, verbose=False, debug=False):
+
+    df = get_samples(sample_sheet)
+
+    fastq_files = list(fastq_dir.rglob(f'*.fastq*'))
+    # print(*fastq_files, sep='\n')
+    for sample_project, view in df.groupby('Sample_Project'):
+        for idx, row in view.iterrows():
+            print('---')
+            # print(row)
+            # sample_prefix = NONALPHANUMERIC.sub('-', row['Sample_ID'])
+            # filelist = [f for f in fastq_files if sample_prefix in f.name]
+            # print(f'sample_prefix = {sample_prefix}')
+
+            # Change the search string because demultiplexing is slightly different on NovaSeq vs MiSeq:
+            # - NovaSeq uses bcl2fastq: keep underscores in `Sample_ID` as underscores in filename
+            # - MiSeq does not use bcl2fastq: change underscores in `Sample_ID` to dashes in filename
+            # Solution: change dashes and underscores in `Sample_ID` to a regex `[-_]` to match dash or underscore in filename.
+            sample_query = re.sub('[-_]', r'[-_]', row['Sample_ID'])
+            if debug:
+                print(row['Sample_ID'], '->', sample_query)
+            filelist = [f for f in fastq_files if re.search(sample_query, f.name)]
+            if verbose:
+                for key in ['Sample_Project', 'Sample_ID']:
+                    if key in row:
+                        long_message += f'{key} : {row[key]}\n'
+                if filelist:
+                    print('[OK] Found files:')
+                    print(*filelist, sep='\n')
+                else:
+                    print(f'[MISSING] No FASTQ files matching `{sample_query}`')
+            else:
+                if filelist:
+                    print(f'[OK] {row["Sample_Project"]} , {row["Sample_ID"]}')
+                else:
+                    print(f'[MISSING] {row["Sample_Project"]} , {row["Sample_ID"]}')
+
+        print('#'*72)
+
+
 def main():
 
     def _path(x):
-        if not isinstance(x, pathlib.Path):
+        if isinstance(x, pathlib.Path):
+            x = x.expanduser()
+        elif isinstance(x, str):
             x = pathlib.Path(x)
-        x = x.expanduser()
+            x = x.expanduser()
+        else:
+            x = None
         return x
 
     parser = argparse.ArgumentParser(
@@ -59,118 +114,102 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    # run_dir = DATADIR / 'MiSeqRuns/230630_M04398_0054_000000000-L63FY'
     parser.add_argument(
-        'run_dir',
+        '-r', '--run-dir',
         type=_path,
         help="Path to Illumina run"
     )
+
     parser.add_argument(
-        '-d', '--datadir',
-        default=DATADIR,
+        '-s', '--samplesheet',
         type=_path,
-        help="Path to project directory, eg 'projects/gensvc'"
+        help="Path to Sample Sheet"
     )
+
     parser.add_argument(
-        '--yes',
-        action='store_true',
-        help="Reply 'yes' to all questions (ie, copy all of the data)."
+        '-f', '--fastq-dir',
+        type=_path,
+        help="Path to directory with FASTQ files (e.g., the `--outdir` from `bcl2fastq`)"
     )
-    # parser.add_argument('-v', '--verbose', action='store_true')  # on/off flag
-    parser.add_argument('--debug', action='store_true')  # on/off flag
+
+    parser.add_argument(
+        '-u', '--unique',
+        type=str,
+        nargs='*',
+        help="Display unique values for the provided fields"
+    )
+
+    parser.add_argument(
+        '-c', '--check-samples',
+        type=str,
+        nargs='*',
+        help="Check for FASTQ files corresponding to samples in the sample sheet"
+    )
+
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        default=False,
+        help="Print info about the samples and matching files; otherwise, just print OK or MISSING"
+    )
+
+    parser.add_argument(
+        '--debug',
+        action='store_true'
+    )
 
     args = parser.parse_args()
 
-    path_to_samplesheet = args.run_dir / 'SampleSheet.csv'
-
-    errors = 0
+    if args.samplesheet:
+        path_to_samplesheet = args.samplesheet
+    else:
+        path_to_samplesheet = args.run_dir / 'SampleSheet.csv'
 
     if args.debug:
         print(args)
 
-    if not args.run_dir.exists():
-        errors += 1
-        print(f'[ERROR] run_dir does not exist: {str(args.run_dir)}')
-
-    if not args.datadir.exists():
-        errors += 1
-        print(f'[ERROR] --datadir does not exist: {str(args.datadir)}')
-
-    if not path_to_samplesheet.exists():
-        errors += 1
-        print(f'[ERROR] path_to_samplesheet does not exist: {str(path_to_samplesheet)}')
-
-    fastq_dir = list(args.run_dir.rglob('Fastq'))
-    if len(fastq_dir) > 1:
-        errors += 1
-        print(f'[ERROR] There can be only one fastq directory: {fastq_dir}')
-    else:
-        fastq_dir = fastq_dir[0]
-
-    if not fastq_dir.exists():
-        errors += 1
-        print(f'[ERROR] fastq_dir does not exist: {str(fastq_dir)}')
-
-    if errors > 0:
-        sys.exit(1)
-
-    checksums_filepath = args.datadir / 'checksums'
-
-    outdir = args.datadir / 'processed'
-    outdir.mkdir(parents=True, exist_ok=True)
-
     sample_sheet = SampleSheet(path_to_samplesheet)
 
-    df = pd.DataFrame([_sample.to_json() for _sample in sample_sheet])
+    if args.unique:
+        display_unique(sample_sheet, columns=args.unique)
 
-    # view = df.query('Sample_Project=="UTK_bbruce_Bruce_230630"').copy()
-    # _table = view
+    if args.check_samples:
+        check_samples(sample_sheet, args.fastq_dir, verbose=args.verbose)
 
-    for idx, row in df.iterrows():
-        print('---')
-        # print(row)
-        # print(row['Sample_Project'])
-        # print(row['Sample_ID'])
-        sample_prefix = NONALPHANUMERIC.sub('-', row['Sample_ID'])
-        # print(sample_prefix)
-        filelist = list(fastq_dir.rglob(f'{sample_prefix}*.fastq*'))
-        # print(*filelist, sep='\n')
-        for source_path in filelist:
-            dest_path = outdir / args.run_dir.name / row['Sample_Project'] / source_path.name
+    # df = pd.DataFrame([_sample.to_json() for _sample in sample_sheet])
+    # fastq_files = list(args.fastq_dir.rglob(f'*.fastq*'))
+    # # print(*fastq_files, sep='\n')
+    # for sample_project, view in df.groupby('Sample_Project'):
+    #     for idx, row in view.iterrows():
+    #         print('---')
+    #         # print(row)
+    #         # sample_prefix = NONALPHANUMERIC.sub('-', row['Sample_ID'])
+    #         # filelist = [f for f in fastq_files if sample_prefix in f.name]
+    #         # print(f'sample_prefix = {sample_prefix}')
+    #         # Change the search string because demultiplexing is slightly different on NovaSeq vs MiSeq:
+    #         # - NovaSeq uses bcl2fastq: keep underscores in `Sample_ID` as underscores in filename
+    #         # - MiSeq does not use bcl2fastq: change underscores in `Sample_ID` to dashes in filename
+    #         # Solution: change dashes and underscores in `Sample_ID` to a regex `[-_]` to match dash or underscore in filename.
+    #         sample_query = re.sub('[-_]', r'[-_]', row['Sample_ID'])
+    #         if args.debug:
+    #             print(row['Sample_ID'], '->', sample_query)
+    #         filelist = [f for f in fastq_files if re.search(sample_query, f.name)]
+    #         if args.verbose:
+    #             for key in ['Sample_Project', 'Sample_ID']:
+    #                 if key in row:
+    #                     long_message += f'{key} : {row[key]}\n'
+    #             if filelist:
+    #                 print('[OK] Found files:')
+    #                 print(*filelist, sep='\n')
+    #             else:
+    #                 print(f'[MISSING] No FASTQ files matching `{sample_query}`')
+    #         else:
+    #             if filelist:
+    #                 print(f'[OK] {row["Sample_Project"]} , {row["Sample_ID"]}')
+    #             else:
+    #                 print(f'[MISSING] {row["Sample_Project"]} , {row["Sample_ID"]}')
+    #     print('#'*72)
 
-            print('source: ', source_path)
-            print('dest  : ', dest_path)
-
-            if dest_path.exists():
-                print('Destination already exists; skipping.')
-            else:
-                # Prompt to copy.
-                if args.yes:
-                    response = 'y'
-                else:
-                    response = input('Do you want to copy "source" to "dest" (above): [Y/n/q] ')
-                    response = response.lower()
-
-                if response.startswith('q'):
-                    print('Quitting')
-                    return 1
-                elif response.startswith('y'):
-                    # print(source_path, '->', dest_path)
-                    dest_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(source_path, dest_path)
-                    
-                    source_shasum = shasum(source_path)
-                    dest_shasum = shasum(dest_path)
-                    print(source_shasum, source_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
-                    print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP)
-
-                    if not source_shasum == dest_shasum:
-                        print('[WARNING] Checksums do not match (see above).')
-                    
-                    # with open(checksums_filepath, 'a') as f:
-                    #     print(dest_shasum, dest_path.relative_to(args.datadir), sep=CHECKSUMS_SEP, file=f)
-                else:
-                    print('*** SKIPPED ***')
     return 0
 
 
