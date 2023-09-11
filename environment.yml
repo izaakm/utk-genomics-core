@@ -1,12 +1,14 @@
 name: gensvc
 channels:
   - conda-forge
-  - bioconda
   - defaults
+  - bioconda
 dependencies:
   - ca-certificates
   - certifi
   - ipykernel
+  - mamba
+  - multiqc
   - openssl
   - pandas
   - python
