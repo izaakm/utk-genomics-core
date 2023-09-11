@@ -2,12 +2,12 @@
 #SBATCH --job-name=gensvc-convert
 #SBATCH --account=ISAAC-UTK0192
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=56
+#SBATCH --ntasks-per-node=48
 #SBATCH --exclusive=mcs
-#SBATCH --partition=condo-ut-genomics
-#SBATCH --time=0-08:00:00
+#SBATCH --partition=short
+#SBATCH --qos=short
+#SBATCH --time=0-03:00:00
 #SBATCH --output=job-%J-%x.o
-#SBATCH --qos=genomics
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=bioinformatics@utk.edu
 
@@ -15,7 +15,7 @@
 
 rundir="$1"
 samplesheet="$2"
-fastqdir="$3"
+fastqdir="${3:-fastq}"
 
 errors=0
 
@@ -24,7 +24,7 @@ if [[ "$#" -ne 3 ]] ; then
     echo "Usage: bcl2fastq.slurm <rundir> <samplesheet> <fastqdir>"
     echo "  <rundir>       path to Illumina run (must already exist)"
     echo "  <samplesheet>  path to SampleSheet.csv (must already exist)"
-    echo "  <rundir>       bcl2fastq will output fastq files into this directory (will be created)"
+    echo "  <fastqdir>     bcl2fastq will output fastq files into this directory (will be created)"
     exit 2
 fi
 
@@ -63,7 +63,7 @@ source /usr/share/Modules/init/bash
 module load bcl2fastq2
 
 bcl2fastq \
-    --processing-threads 48 \
+    --processing-threads 46 \
     --runfolder-dir "$rundir" \
     --output-dir "$fastqdir" \
     --sample-sheet "$samplesheet"
