@@ -13,13 +13,13 @@ for rundir in `dirname \`find "$LUSTREDIR" -maxdepth 3 -mtime -1 -name CopyCompl
 #SBATCH -J bcl
 #SBATCH --account ISAAC-UTK0192
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=56
+#SBATCH --ntasks-per-node=48
 #SBATCH --exclusive=mcs
-#SBATCH --partition=condo-ut-genomics
-#SBATCH --time=7-00:00:00
+#SBATCH --partition=short
+#SBATCH --time=03:00:00
 #SBATCH --error=job.e%J
 #SBATCH --output=job.o%J
-#SBATCH --qos=genomics
+#SBATCH --qos=short
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=$MAILLIST
 
