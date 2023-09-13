@@ -87,10 +87,8 @@ def main():
         description='Parse stats from bcl2fastq and split by project.'
     )
 
-    parser.add_argument('samplesheetfile')           # positional argument
-    parser.add_argument('statsfile')           # positional argument
-    parser.add_argument('-c', '--count')      # option that takes a value
-    parser.add_argument('-v', '--verbose', action='store_true')  # on/off flag
+    parser.add_argument('samplesheetfile')
+    parser.add_argument('statsfile')
 
     args = parser.parse_args()
 
