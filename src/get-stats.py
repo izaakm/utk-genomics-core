@@ -11,7 +11,7 @@ import sys
 from sample_sheet import SampleSheet
 
 
-def proc(sd, lc):
+def get_sample_stats(sd, lc):
     '''
     sd : Sample Demultiplex Results
     lc : Lane Conversion Results
@@ -74,6 +74,24 @@ def proc(sd, lc):
     return row
 
 
+def get_top_unknown_barcodes(statsdata, n=10):
+    top_ubarcodes = []
+    for lane in statsdata['UnknownBarcodes']:
+        # print(lane['Lane'])
+        # print(lane.keys())
+    
+        b = lane['Barcodes']
+        
+        t = pd.Series(b)
+        t.name = 'Count' # Will be coerced to column name.
+        t = t.to_frame()
+        t = t.reset_index(names=['Sequence'])
+        t['Lane'] = lane['Lane']
+        top_ubarcodes.append(t.sort_values('Count', ascending=False).head(10).copy())
+    table = pd.concat(top_ubarcodes).reset_index(drop=True)
+    table = table[['Lane', 'Count', 'Sequence']]
+    return table
+
 def main():
 
     # datadir = pathlib.Path('/Users/johnmiller/data/gensvc')
@@ -95,6 +113,7 @@ def main():
     with open(args.statsfile) as f:
         statsdata = json.load(f)
 
+    # Get sample statistics.
     ss = SampleSheet(args.samplesheetfile)
 
     sample_df = pd.DataFrame([sample.to_json() for sample in ss.samples])
@@ -104,7 +123,7 @@ def main():
         # print(lane_number)
         for sample in lane['DemuxResults']:
             # print(sample['SampleName'])
-            demux_data.append(proc(sd=sample, lc=lane))
+            demux_data.append(get_sample_stats(sd=sample, lc=lane))
 
     demux_df = pd.DataFrame(demux_data)
 
@@ -115,11 +134,17 @@ def main():
         right_on='Sample'
     )
 
+    # [TODO] Match columns from report.
     for name, grp in foo.groupby('Sample_Project'):
         grp.to_csv(
-            f'{name}-sequencing-stats.csv',
+            f'SequencingStatisticsSampleSummary-{name}.csv',
             index=False
         )
+
+
+    # Get unknown barcodes
+    top_u_barcodes = get_top_unknown_barcodes(statsdata, n=10)
+    top_u_barcodes.to_csv('SequencingStatisticsTopUnknownBarcodes.csv', index=False)
 
 
 if __name__ == '__main__':
