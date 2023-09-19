@@ -16,12 +16,12 @@ set -x
 # ulimit -n 16384
 
 # LUSTREDIR=/lustre/isaac/proj/UTK0192/gensvc
-# rootdir=/lustre/isaac/proj/UTK0192/gensvc
 # fastqdir=./fastq.\$SLURM_JOB_ID
-rootdir=/Users/johnmiller/data/gensvc
-logfile=/Users/johnmiller/data/gensvc/logs/convert.log
+# sequencing_datadir=/Users/johnmiller/data/gensvc
+# logfile=/Users/johnmiller/data/gensvc/logs/convert.log
+sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
+logfile="${sequencing_datadir}/logs/convert.log"
 MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
-
 
 errors=0
 
@@ -72,12 +72,13 @@ get_rundir() {
     local rundir="$1"
     # Check that rundir exists.
     if [[ -d "$rundir" ]] ; then
+        # Get real path.
+        rundir="$(cd $rundir && pwd -P)"
         echo "$rundir"
     else
         logger "[ERROR] rundir must be an existing directory; you gave: $rundir"
         ((errors++))
     fi
-
 }
 
 
@@ -134,11 +135,11 @@ main() {
     local run_id
     local outmain
 
-    rundir="${1:-$(get_rundir $1)}"
+    rundir="$(get_rundir $1)"
     samplesheet="${2:-$(get_samplesheet $rundir $2 )}"
 
     run_id="$(basename $rundir)"
-    outmain="${rootdir}/processed/${run_id}/$(date +%Y%m%dT%H%M%S)"
+    outmain="${sequencing_datadir}/processed/${run_id}/$(date +%Y%m%dT%H%M%S)"
 
     fastqdir="${3:-$(get_fastqdir $outmain $3 )}"
     threads="${4:-$(nproc)}"
