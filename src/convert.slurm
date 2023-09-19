@@ -1,53 +1,160 @@
 #!/bin/bash
-#SBATCH --job-name gensvc-convert
-#SBATCH --account ISAAC-UTK0192
+#SBATCH --job-name=gensvc-convert
+#SBATCH --account=ISAAC-UTK0192
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=56
+#SBATCH --ntasks-per-node=48
 #SBATCH --exclusive=mcs
-#SBATCH --partition=condo-ut-genomics
-#SBATCH --time=0-08:00:00
-#SBATCH --output=job.o%J
-#SBATCH --qos=genomics
+#SBATCH --partition=short
+#SBATCH --qos=short
+#SBATCH --time=0-03:00:00
+#SBATCH --output=job-%J-%x.o
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=bioinformatics@utk.edu
 
+set -x
+
 # ulimit -n 16384
 
-# Options.
-runid="230731_A01770_0044_AHHF22DRX3"
-version="$(date +%s)"
+# LUSTREDIR=/lustre/isaac/proj/UTK0192/gensvc
+# rootdir=/lustre/isaac/proj/UTK0192/gensvc
+# fastqdir=./fastq.\$SLURM_JOB_ID
+rootdir=/Users/johnmiller/data/gensvc
+logfile=/Users/johnmiller/data/gensvc/logs/convert.log
+MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
-# Inputs.
-rundir="/lustre/isaac/proj/UTK0192/data/processed/${runid}/${version}/runfolder_dir"
-samplesheet="/lustre/isaac/proj/UTK0192/data/processed/${runid}/${version}/UTK_ORNL_splitlane230731B.csv" # [TODO] Find this or have the user specify?
 
-# Outputs.
-fastqdir="/lustre/isaac/proj/UTK0192/data/processed/${runid}/${version}/fastq"
-fastqc_results="/lustre/isaac/proj/UTK0192/data/processed/${runid}/${version}/fastqc"
+errors=0
 
-echo "rundir      : $rundir"
-echo "samplesheet : $samplesheet"
-echo "fastqdir    : $fastqdir"
+logger() {
+    # TODO log messages should go to stdout AND the logfile.
+    local msg=("$@")
+    echo "$(date +%Y-%m-%dT%H:%M:%S) ${msg[@]}" | tee -a "$logfile"
+}
 
-sleep 1
 
-source /usr/share/Modules/init/bash
-module load bcl2fastq2
-mkdir -v $fastqdir
+usage() {
+    echo
+    echo "Usage: bcl2fastq.slurm <rundir> <samplesheet> <fastqdir>"
+    echo "  <rundir>       path to Illumina run (must already exist)"
+    echo "  <samplesheet>  path to SampleSheet.csv (must already exist)"
+    echo "  <fastqdir>     bcl2fastq will output fastq files into this directory (will be created)"
+    echo
+}
 
-bcl2fastq \
-    --processing-threads 48 \
-    --runfolder-dir "$rundir" \
-    --output-dir "$fastqdir" \
-    --sample-sheet "$samplesheet"
 
-module unload bcl2fastq2
-module load fastqc
+make_dir() {
+    local command=(
+        mkdir -pv "$1"
+    )
+    echo "[DRYRUN] ${command[@]}"
+}
 
-find "$fastqdir" -name '*.fastq.gz' \
-    | xargs fastqc \
-    --outdir "$fastqc_results" \
-    --noextract \
-    --threads $(($(nproc) / 2))
+run_bcl2fastq() {
+    # source /usr/share/Modules/init/bash
+    # module load bcl2fastq2  # It has two 2s!!!
+
+    local rundir="$1"
+    local samplesheet="$2"
+    local fastqdir="$3"
+    local threads="$4"
+    local command=(
+        bcl2fastq
+        --processing-threads "$threads"
+        --runfolder-dir "$rundir"
+        --sample-sheet "$samplesheet"
+        --output-dir "$fastqdir"
+    )
+    echo "[DRYRUN] ${command[@]}"
+}
+
+
+get_rundir() {
+    local rundir="$1"
+    # Check that rundir exists.
+    if [[ -d "$rundir" ]] ; then
+        echo "$rundir"
+    else
+        logger "[ERROR] rundir must be an existing directory; you gave: $rundir"
+        ((errors++))
+    fi
+
+}
+
+
+get_samplesheet() {
+    # If the passed samplesheet exists, use it. Otherwise, check the rundir for a csv file. If there's more than 1 csv file, return an error.
+    local rundir="$1"
+    local samplesheet="$2"
+
+    if [[ -f "$samplesheet" ]] ; then
+        echo "$samplesheet"
+    elif [[ -f "${rundir}/SampleSheet.csv" ]] ; then
+        echo "${rundir}/SampleSheet.csv"
+    else
+        csv_files=($(find "$rundir" -maxdepth 1 -name '*.csv'))
+        if [[ "${#csv_files[@]}" -eq 0 ]] ; then
+            logger "[ERROR] No sample sheet found in rundir"
+            # exit 1
+            ((errors++))
+        elif [[ "${#csv_files[@]}" -eq 1 ]] ; then
+            echo "${csv_files[0]}"
+        else
+            logger "[ERROR] Too many csv files in rundir, samplesheet is ambiguous"
+            # exit 1
+            ((errors++))
+        fi
+    fi
+}
+
+
+get_fastqdir() {
+    local outmain="$1"
+    local fastqdir="$2"
+
+    # Make the fastq directory.
+    if [[ -d "$fastqdir" ]] ; then
+        echo "$fastqdir" 
+    else
+        echo "${outmain}/fastq"
+    fi
+}
+
+
+main() {
+    # Check for arguments.
+    if [[ "$#" -eq 0 ]] ; then
+        usage
+        exit 2
+    fi
+
+    local rundir
+    local samplesheet
+    local fastqdir
+    local threads
+    local run_id
+    local outmain
+
+    rundir="${1:-$(get_rundir $1)}"
+    samplesheet="${2:-$(get_samplesheet $rundir $2 )}"
+
+    run_id="$(basename $rundir)"
+    outmain="${rootdir}/processed/${run_id}/$(date +%Y%m%dT%H%M%S)"
+
+    fastqdir="${3:-$(get_fastqdir $outmain $3 )}"
+    threads="${4:-$(nproc)}"
+
+    # Exit if there are errors above.
+    if [[ errors -ne 0 ]] ; then
+        logger "[INFO] Exiting due to errors (see above)"
+        usage
+        exit 1
+    fi
+
+    # mkdir -pv $fastqdir
+    make_dir "$fastqdir"
+    run_bcl2fastq "$rundir" "$samplesheet" "$fastqdir" "$threads"
+}
+
+main "$@"
 
 exit 0
