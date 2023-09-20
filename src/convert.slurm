@@ -11,7 +11,11 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=bioinformatics@utk.edu
 
-set -x
+# set -x
+set -e
+
+declare dry_run
+# dry_run=true
 
 # ulimit -n 16384
 
@@ -42,16 +46,25 @@ usage() {
 }
 
 
+run() {
+	local command=("$@")
+	if [[ $dry_run == true ]] ; then
+		echo "[DRYRUN] ${command[@]}"
+	else
+		"${command[@]}"
+	fi
+}
+
+
 make_dir() {
     local command=(
         mkdir -pv "$1"
     )
-    echo "[DRYRUN] ${command[@]}"
+    # echo "[DRYRUN] ${command[@]}"
+	run "${command[@]}"
 }
 
 run_bcl2fastq() {
-    # source /usr/share/Modules/init/bash
-    # module load bcl2fastq2  # It has two 2s!!!
 
     local rundir="$1"
     local samplesheet="$2"
@@ -64,7 +77,11 @@ run_bcl2fastq() {
         --sample-sheet "$samplesheet"
         --output-dir "$fastqdir"
     )
-    echo "[DRYRUN] ${command[@]}"
+    # echo "[DRYRUN] ${command[@]}"
+    run source /usr/share/Modules/init/bash
+    run module load bcl2fastq2
+	#                        ^ It has two 2s!!!
+	run "${command[@]}"
 }
 
 
