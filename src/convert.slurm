@@ -14,6 +14,7 @@
 # set -x
 set -e
 
+declare help
 declare dry_run
 # dry_run=true
 
@@ -23,49 +24,84 @@ declare dry_run
 # fastqdir=./fastq.\$SLURM_JOB_ID
 # sequencing_datadir=/Users/johnmiller/data/gensvc
 # logfile=/Users/johnmiller/data/gensvc/logs/convert.log
+
 sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
 logfile="${sequencing_datadir}/logs/convert.log"
+
 MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
-errors=0
-
 logger() {
-    # TODO log messages should go to stdout AND the logfile.
+    # TODO log messages should go to stderr AND the logfile.
+    # Alternative? Use file descriptor to redirect to file w/o tee.
     local msg=("$@")
     echo "$(date +%Y-%m-%dT%H:%M:%S) ${msg[@]}" | tee -a "$logfile"
 }
 
 
 usage() {
-    echo
-    echo "Usage: bcl2fastq.slurm <rundir> <samplesheet> <fastqdir>"
-    echo "  <rundir>       path to Illumina run (must already exist)"
-    echo "  <samplesheet>  path to SampleSheet.csv (must already exist)"
-    echo "  <fastqdir>     bcl2fastq will output fastq files into this directory (will be created)"
-    echo
+	# Print the help message.
+    cat << eof 
+Usage: $(basename $0) -r <rundir> [hnfost]
+
+    -h 
+        Print this help message and exit.
+
+    -n
+        Dry run mode. Do not do anything, just print what would be done.
+
+    -f <fastqdir>   
+        bcl2fastq will output fastq files into this directory (will be created).
+        The default for this script is to set this to <outdir>/fastq. Usually,
+		-f and -o should be treated as mutually exclusive options, but this is
+		not enforced.
+
+    -o <outdir>     
+        The main output directory.  The default is to use
+
+            ${sequencing_datadir}/processed/<run_id>/<YYYYmmdd>T<HHMMSS>
+
+        where <run_id> is the basename of the <rundir> (below). This directory
+        will be created. Usually, -f and -o should be treated as mutually
+		exclusive options, but this is not enforced.
+
+    -r <rundir>     
+        Path to Illumina run (must already exist).
+
+    -s <samplesheet>
+        Path to SampleSheet.csv (must already exist).
+        The default is to look for <rundir>/SampleSheet.csv. If this does not
+        exist, and there is exactly one csv file in <rundir>, then that file
+        will be used. Otherwise, an error will be returned.
+
+    -t <threads>    
+        Number of processing threads for bcl2fastq. Defaults to all available threads.
+eof
 }
 
 
 run() {
-	local command=("$@")
-	if [[ $dry_run == true ]] ; then
-		echo "[DRYRUN] ${command[@]}"
-	else
-		"${command[@]}"
-	fi
+	# Run the command, or just print it if dry_run is true.
+    local command=("$@")
+    if [[ $dry_run == true ]] ; then
+        echo "[DRYRUN] ${command[@]}"
+    else
+        "${command[@]}"
+    fi
 }
 
 
 make_dir() {
+	# Make the directory and its parents.
     local command=(
         mkdir -pv "$1"
     )
-    # echo "[DRYRUN] ${command[@]}"
-	run "${command[@]}"
+
+    run "${command[@]}"
 }
 
-run_bcl2fastq() {
 
+run_bcl2fastq() {
+	# Run bcl2fastq.
     local rundir="$1"
     local samplesheet="$2"
     local fastqdir="$3"
@@ -77,24 +113,25 @@ run_bcl2fastq() {
         --sample-sheet "$samplesheet"
         --output-dir "$fastqdir"
     )
-    # echo "[DRYRUN] ${command[@]}"
+
     run source /usr/share/Modules/init/bash
     run module load bcl2fastq2
-	#                        ^ It has two 2s!!!
-	run "${command[@]}"
+    #                        ^ It has two 2s!!!
+
+    run "${command[@]}"
 }
 
 
 get_rundir() {
+    # Check that rundir exists, and if so, get the full path.
     local rundir="$1"
-    # Check that rundir exists.
+
     if [[ -d "$rundir" ]] ; then
-        # Get real path.
         rundir="$(cd $rundir && pwd -P)"
         echo "$rundir"
     else
         logger "[ERROR] rundir must be an existing directory; you gave: $rundir"
-        ((errors++))
+        exit 1
     fi
 }
 
@@ -112,28 +149,26 @@ get_samplesheet() {
         csv_files=($(find "$rundir" -maxdepth 1 -name '*.csv'))
         if [[ "${#csv_files[@]}" -eq 0 ]] ; then
             logger "[ERROR] No sample sheet found in rundir"
-            # exit 1
-            ((errors++))
+            exit 1
         elif [[ "${#csv_files[@]}" -eq 1 ]] ; then
             echo "${csv_files[0]}"
         else
             logger "[ERROR] Too many csv files in rundir, samplesheet is ambiguous"
-            # exit 1
-            ((errors++))
+            exit 1
         fi
     fi
 }
 
 
 get_fastqdir() {
-    local outmain="$1"
+	# Use fastqdir if provided, otherwise default to <outdir>/fastq.
+    local outdir="$1"
     local fastqdir="$2"
 
-    # Make the fastq directory.
-    if [[ -d "$fastqdir" ]] ; then
+    if [[ -n "$fastqdir" ]] ; then
         echo "$fastqdir" 
     else
-        echo "${outmain}/fastq"
+        echo "${outdir}/fastq"
     fi
 }
 
@@ -145,34 +180,70 @@ main() {
         exit 2
     fi
 
+    local fastqdir
+    local outdir
+    local run_id
     local rundir
     local samplesheet
-    local fastqdir
     local threads
-    local run_id
-    local outmain
 
-    rundir="$(get_rundir $1)"
-    samplesheet="${2:-$(get_samplesheet $rundir $2 )}"
+    while getopts ":hnf:o:r:s:t:" opt; do
+        case $opt in
+            h) help="true"
+                ;;
+            n) dry_run="true"
+                ;;
+            f) fastqdir="$OPTARG"
+                ;;
+            o) outdir="$OPTARG"
+                ;;
+            r) rundir="$OPTARG"
+                ;;
+            s) samplesheet="$OPTARG"
+                ;;
+            t) threads="$OPTARG"
+                ;;
+            *) echo "invalid command: no parameter included with argument $OPTARG"
+                ;;
+        esac
+    done
 
-    run_id="$(basename $rundir)"
-    outmain="${sequencing_datadir}/processed/${run_id}/$(date +%Y%m%dT%H%M%S)"
+	# Debugging:
+    # echo $help
+    # echo $dry_run
+    # echo $fastqdir
+    # echo $outdir
+    # echo $run_id
+    # echo $rundir
+    # echo $samplesheet
+    # echo $threads
 
-    fastqdir="${3:-$(get_fastqdir $outmain $3 )}"
-    threads="${4:-$(nproc)}"
-
-    # Exit if there are errors above.
-    if [[ errors -ne 0 ]] ; then
-        logger "[INFO] Exiting due to errors (see above)"
+    if [[ $help == true ]] ; then
         usage
-        exit 1
+        exit 0
     fi
 
-    # mkdir -pv $fastqdir
+    rundir="$(get_rundir $rundir)"
+    threads="${threads:-$(nproc)}"
+
+	# Depends on rundir
+    run_id="$(basename $rundir)"
+    samplesheet="${samplesheet:-$(get_samplesheet $rundir $samplesheet )}"
+
+	# Depends on run_id
+    outdir="${outdir:-${sequencing_datadir}/processed/${run_id}/$(date +%Y%m%dT%H%M%S)}"
+
+	# Depends on outdir
+    fastqdir="$(get_fastqdir $outdir $fastqdir )"
+
+	# fastqdir may or may not be a subdirectory of outdir.
+    make_dir "$outdir"
     make_dir "$fastqdir"
+
     run_bcl2fastq "$rundir" "$samplesheet" "$fastqdir" "$threads"
+
+    exit 0
 }
 
-main "$@"
 
-exit 0
+main "$@"
