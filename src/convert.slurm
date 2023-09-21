@@ -16,6 +16,7 @@ set -e
 
 declare help
 declare dry_run
+declare run_id
 # dry_run=true
 
 # ulimit -n 16384
@@ -33,8 +34,13 @@ MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 logger() {
     # TODO log messages should go to stderr AND the logfile.
     # Alternative? Use file descriptor to redirect to file w/o tee.
-    local msg=("$@")
-    echo "$(date +%Y-%m-%dT%H:%M:%S) ${msg[@]}" | tee -a "$logfile"
+    local content=("$@")
+    msg="$(date +%Y-%m-%dT%H:%M:%S) - $run_id - ${content[@]}"
+    if [[ $dry_run == true ]] ; then
+        echo "[DRYRUN] $msg" >&2
+    else
+        echo "$msg" >&2 # | tee -a "$logfile"
+    fi
 }
 
 
@@ -131,7 +137,7 @@ get_rundir() {
         echo "$rundir"
     else
         logger "[ERROR] rundir must be an existing directory; you gave: $rundir"
-        exit 1
+        return 1
     fi
 }
 
@@ -182,7 +188,7 @@ main() {
 
     local fastqdir
     local outdir
-    local run_id
+    # local run_id
     local rundir
     local samplesheet
     local threads
@@ -241,6 +247,8 @@ main() {
     make_dir "$fastqdir"
 
     run_bcl2fastq "$rundir" "$samplesheet" "$fastqdir" "$threads"
+
+    logger "bcl2fastq conversion complete: $fastqdir"
 
     exit 0
 }
