@@ -26,10 +26,10 @@ declare run_id
 # sequencing_datadir=/Users/johnmiller/data/gensvc
 # logfile=/Users/johnmiller/data/gensvc/logs/convert.log
 
-sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
-logfile="${sequencing_datadir}/logs/convert.log"
+declare sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
+declare logfile="${sequencing_datadir}/logs/convert.log"
 
-MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
+declare MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
 logger() {
     # TODO log messages should go to stderr AND the logfile.
@@ -39,6 +39,7 @@ logger() {
     if [[ $dry_run == true ]] ; then
         echo "[DRYRUN] $msg" >&2
     else
+        echo "$msg" >> "$logfile"
         echo "$msg" >&2 # | tee -a "$logfile"
     fi
 }
