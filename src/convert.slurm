@@ -26,11 +26,13 @@ declare run_id
 # sequencing_datadir=/Users/johnmiller/data/gensvc
 # logfile=/Users/johnmiller/data/gensvc/logs/convert.log
 
+
 declare sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
 declare logfile="${sequencing_datadir}/logs/convert.log"
 
 declare MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
+declare ANACONDA3_SH="${ANACONDA3_SH:-/sw/isaac/applications/anaconda3/2021.05/rhel8_gcc10.2.0/anaconda3-2021.05/etc/profile.d/conda.sh}"
 declare condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
 declare extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/src/oit-hpsc-gensvc/src/extract-bcl2fastq-stats.py
 
@@ -202,6 +204,10 @@ run_extract_illumina_stats() {
 
     if [[ ! -f "$extract_illumina_stats" ]] ; then
         logger "[WARNING] Illumina stats script does not exist: $extract_illumina_stats"
+    fi
+
+    if [[ ! -f "$ANACONDA3_SH" ]] ; then
+        logger "[WARNING] Anaconda initialization script does not exist: $ANACONDA3_SH"
     fi
 
     run module unload PE-intel
