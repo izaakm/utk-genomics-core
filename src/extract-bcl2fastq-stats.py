@@ -27,6 +27,7 @@ def get_sample_stats(sd, lc):
         percent_perfect_barcode = sd['IndexMetrics'][0]['MismatchCounts']['0'] / sd['NumberReads'] * 100
         percent_mismatch_barcode = sd['IndexMetrics'][0]['MismatchCounts']['1'] / sd['NumberReads'] * 100
         yield_mbases = round(sd['Yield'] / 1000000)
+
         # Percent bases w/ Q30
         y0 = sd['ReadMetrics'][0]['YieldQ30'] / sd['ReadMetrics'][0]['Yield']
         y1 = sd['ReadMetrics'][1]['YieldQ30'] / sd['ReadMetrics'][1]['Yield']
@@ -46,20 +47,6 @@ def get_sample_stats(sd, lc):
         percent_q30 = 'NA'
         mean_quality = 'NA'
     
-    # row = {
-    #     'Lane': '',
-    #     'Project': '',
-    #     'Sample': sd['SampleName'],
-    #     'Barcode sequence': barcode_sequence,
-    #     'PF Clusters': '{:,}'.format(sample_nreads),
-    #     '% of the lane': '{:.2f}'.format(percent_lane),
-    #     '% Perfect barcode': '{:.2f}'.format(percent_perfect_barcode),
-    #     '% One mismatch barcode': '{:.2f}'.format(percent_mismatch_barcode),
-    #     'Yield (Mbases)': '{:,}'.format(yield_mbases),
-    #     '% PF Clusters': 'Always 100???',
-    #     '% >= Q30 bases': '{:.2f}'.format(percent_q30),
-    #     'Mean Quality Score': '{:.2f}'.format(mean_quality)
-    # }
     row = {
         'Project': '',
         'Sample': sd['SampleName'],
@@ -136,12 +123,6 @@ def write_table(df, path, index=False, dry_run=False):
 
 def main():
 
-    # datadir = pathlib.Path('/Users/johnmiller/data/gensvc')
-    # parentdir = datadir / 'processed/230908_A01770_0050_BHKWFVDRX3/1694438321'
-    # samplesheetfile = parentdir / 'UTK_Hazen_kash_zgriffi3_230908-1694438500.csv'
-    # statsdir = parentdir / 'fastq/Stats'
-    # statsfile = statsdir / 'Stats.json'
-
     parser = argparse.ArgumentParser(
         description=(
             'Parse stats from bcl2fastq and split by project. '
@@ -186,7 +167,7 @@ def main():
     )
 
     args = parser.parse_args()
-    print(args)
+    # print(args)
 
     # # Load the sample sheet.
     # ss = SampleSheet(args.samplesheetfile)
@@ -245,14 +226,11 @@ def main():
         out_project.mkdir(exist_ok=True)
         _ = write_table(grp, out_project / 'SampleSummary.csv', dry_run=args.dry_run)
 
-        # _ = write_table(tables['main_lane_summary'].query('Lane == @lanes'), out_project / 'LaneSummary.csv', dry_run=args.dry_run)
-        # _ = write_table(tables['stats_top_unknown_barcodes'].query('Lane == @lanes'), out_project / 'TopUnknownBarcodes.csv', dry_run=args.dry_run)
         mask = tables['main_lane_summary']['Lane'].isin(lanes)
         _ = write_table(tables['main_lane_summary'].loc[mask], out_project / 'LaneSummary.csv', dry_run=args.dry_run)
         mask = tables['stats_top_unknown_barcodes']['Lane'].isin(lanes)
         _ = write_table(tables['stats_top_unknown_barcodes'].loc[mask], out_project / 'TopUnknownBarcodes.csv', dry_run=args.dry_run)
 
-    # top_u_barcodes.to_csv('SequencingStatisticsTopUnknownBarcodes.csv', index=False)
     return 0
 
 
