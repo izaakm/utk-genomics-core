@@ -33,7 +33,7 @@ declare MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
 declare condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
 # declare extract_illumina_stats=/nfs/home/jmill165/projects/oit-hpsc-gensvc/src/get-stats.py
-declare extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/bin/get-stats.py
+declare extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/bin/extract-bcl2fastq-stats.py
 
 logger() {
     # TODO log messages should go to stderr AND the logfile.
