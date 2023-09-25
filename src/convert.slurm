@@ -31,8 +31,9 @@ declare logfile="${sequencing_datadir}/logs/convert.log"
 
 declare MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
-declare condaenv=/nfs/home/jmill165/.conda/envs/gensvc
-declare extract_illumina_stats=/nfs/home/jmill165/projects/oit-hpsc-gensvc/src/get-stats.py
+declare condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
+# declare extract_illumina_stats=/nfs/home/jmill165/projects/oit-hpsc-gensvc/src/get-stats.py
+declare extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/bin/get-stats.py
 
 logger() {
     # TODO log messages should go to stderr AND the logfile.
@@ -195,6 +196,14 @@ run_extract_illumina_stats() {
 
     local fastqdir="$1"
     local outdir="$2"
+
+    if [[ ! -d "$condaenv" ]] ; then
+        logger "[WARNING] Conda env does not exist: $conda"
+    fi
+
+    if [[ ! -f "$extract_illumina_stats" ]] ; then
+        logger "[WARNING] Illumina stats script does not exist: $extract_illumina_stats"
+    fi
 
     run module unload PE-intel
     run module load anaconda3
