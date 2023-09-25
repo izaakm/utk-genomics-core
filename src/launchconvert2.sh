@@ -140,12 +140,12 @@ main() {
             run mkdir -pv "$outdir"
             run cd "$outdir"
             submit "$rundir" "$outdir"
-            run cd -
             if [[ $? -eq 0 ]] ; then
                 logger "SUCCESS Sequencing conversion job submitted to Slurm for run '$rundir'"
             else
                 logger "ERROR Sequencing conversion failed for run '$rundir'"
             fi
+            run cd -
             # send_mail $rundir JOBID
         fi
     done
