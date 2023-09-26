@@ -12,29 +12,27 @@
 #SBATCH --mail-user=bioinformatics@utk.edu
 
 # set -x
-set -e
-
-declare help
-declare dry_run
-declare run_id
-# dry_run=true
+# set -e
+set -eo pipefail
 
 # ulimit -n 16384
 
 # LUSTREDIR=/lustre/isaac/proj/UTK0192/gensvc
 # fastqdir=./fastq.\$SLURM_JOB_ID
-# sequencing_datadir=/Users/johnmiller/data/gensvc
-# logfile=/Users/johnmiller/data/gensvc/logs/convert.log
 
+declare help
+declare dry_run
+declare run_id
 
-declare sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
-declare logfile="${sequencing_datadir}/logs/convert.log"
+readonly MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 
-declare MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
+readonly sequencing_datadir="${SEQUENCING_DATADIR:-/lustre/isaac/proj/UTK0192/gensvc}"
+readonly logfile="${sequencing_datadir}/logs/convert.log"
 
-declare ANACONDA3_SH="${ANACONDA3_SH:-/sw/isaac/applications/anaconda3/2021.05/rhel8_gcc10.2.0/anaconda3-2021.05/etc/profile.d/conda.sh}"
-declare condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
-declare extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/src/oit-hpsc-gensvc/src/extract-bcl2fastq-stats.py
+readonly ANACONDA3_SH="${ANACONDA3_SH:-/sw/isaac/applications/anaconda3/2021.05/rhel8_gcc10.2.0/anaconda3-2021.05/etc/profile.d/conda.sh}"
+readonly condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
+readonly extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/src/oit-hpsc-gensvc/src/extract-bcl2fastq-stats.py
+
 
 logger() {
     # TODO log messages should go to stderr AND the logfile.
@@ -102,16 +100,6 @@ run() {
 }
 
 
-make_dir() {
-	# Make the directory and its parents.
-    local command=(
-        mkdir -pv "$1"
-    )
-
-    run "${command[@]}"
-}
-
-
 copy_samplesheet() {
     local sourcefile="$1"
     local outdir="$2"
@@ -138,6 +126,7 @@ run_bcl2fastq() {
     run module load bcl2fastq2
     #                        ^ It has two 2s!!!
 
+    run mkdir -pv "$fastqdir"
     run "${command[@]}"
 }
 
@@ -151,13 +140,14 @@ get_rundir() {
         echo "$rundir"
     else
         logger "[ERROR] rundir must be an existing directory; you gave: $rundir"
-        return 1
+        exit 1
     fi
 }
 
 
 get_samplesheet() {
-    # If the passed samplesheet exists, use it. Otherwise, check the rundir for a csv file. If there's more than 1 csv file, return an error.
+    # If the passed samplesheet exists, use it. Otherwise, check the rundir for
+    # a csv file. If there's more than 1 csv file, return an error.
     local rundir="$1"
     local samplesheet="$2"
 
@@ -181,7 +171,7 @@ get_samplesheet() {
 
 
 get_fastqdir() {
-	# Use fastqdir if provided, otherwise default to <outdir>/fastq.
+    # Use fastqdir for output if provided, otherwise default to <outdir>/fastq.
     local outdir="$1"
     local fastqdir="$2"
 
@@ -210,14 +200,15 @@ run_extract_illumina_stats() {
         logger "[WARNING] Anaconda initialization script does not exist: $ANACONDA3_SH"
     fi
 
-    run module unload PE-intel
+    # run module unload PE-intel
+    run module purge
     run module load anaconda3
     run source $ANACONDA3_SH
     run conda activate
     run conda activate $condaenv
 
-    # usage: get-stats.py [-h] [--statsfile STATSFILE] [--outdir OUTDIR] [--dry-run]
-    #                     fastqdir
+    # usage: extract-bcl2fastq-stats.py [-h] [--statsfile STATSFILE]
+    #                           [--outdir OUTDIR] [--dry-run] fastqdir
     # 
     # Parse stats from bcl2fastq and split by project. Tables for split lane runs
     # will be saved in separate directories according to the "Project" name.
@@ -238,6 +229,17 @@ run_extract_illumina_stats() {
     run $extract_illumina_stats $fastqdir --outdir $outdir/summary-stats
 }
 
+
+run_fastqc() {
+    # TODO
+}
+
+
+run_multiqc() {
+    # TODO
+}
+
+
 main() {
     # Check for arguments.
     if [[ "$#" -eq 0 ]] ; then
@@ -247,7 +249,6 @@ main() {
 
     local fastqdir
     local outdir
-    # local run_id
     local rundir
     local samplesheet
     local threads
@@ -302,8 +303,7 @@ main() {
     fastqdir="$(get_fastqdir $outdir $fastqdir )"
 
 	# fastqdir may or may not be a subdirectory of outdir.
-    make_dir "$outdir"
-    make_dir "$fastqdir"
+    run mkdir -pv "$outdir"
 
     copy_samplesheet "$samplesheet" "$outdir"
 
