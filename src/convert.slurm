@@ -230,14 +230,11 @@ run_extract_illumina_stats() {
 }
 
 
-run_fastqc() {
-    # TODO
-}
+
+# run_fastqc() { # TODO }
 
 
-run_multiqc() {
-    # TODO
-}
+# run_multiqc() { # TODO }
 
 
 main() {
