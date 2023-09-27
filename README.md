@@ -9,8 +9,8 @@ This repo contains a set of scripts for processing sequencing results from the I
 1. Extract summary statistics as CSV files.
 
 
-Directory structure
--------------------
+Data Directory structure
+------------------------
 
     gensvc/
         MiSeqRuns/                 # raw data directory
@@ -23,6 +23,9 @@ Directory structure
                     <RUN_DIR>/     # symlink
                     <OUT_DIR>/     # directory
                     <SAMPLE_SHEET> # csv file
+        logs/
+            submit.log             # tracks submission of conversion job from src/launchconvert.sh
+            convert.log            # tracks conversion jobs from src/convert.slurm
 
 
 Overview of scripts
