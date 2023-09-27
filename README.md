@@ -40,5 +40,12 @@ Overview of scripts
 : This script extracts tables from the `bcl2fastq` summary statistics (html)
   and converts them to CSV files that can be shared with users.
 
+More information about each specific script is available via the help `-h`
+option:
+
+```
+<script> -h
+```
+
 
 <!-- END -->
