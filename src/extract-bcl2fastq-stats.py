@@ -1,6 +1,34 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+'''
+Extract sequencing statistics from bcl2fastq outputs.
+
+Briefly, this script parses stats from bcl2fastq and splits them by project.
+Tables for split lane runs will be saved in separate directories according to
+the "Project" name.
+
+More info: bcl2fastq generates summary stats automatically. The 'raw' stats are
+in the Stats directory (as json) and the summary tables for users are in the
+Reports directory (html). This script scrapes most of the summary stats from
+the html files in the Reports directory. The only exception is the "Top Unknown
+Barcodes" table; the formatting in the html files is awkward, so we recreate
+this one from json in the Stats directory.
+
+The output of this script is organized as follows:
+
+    summary-stats
+    ├── <PROJECT>
+    │   ├── LaneSummary.csv
+    │   ├── SampleSummary.csv
+    │   └── TopUnknownBarcodes.csv
+    └── all
+        ├── FlowcellSummary.csv
+        ├── LaneSummary.csv
+        ├── SampleSummary.csv
+        └── TopUnknownBarcodes.csv
+'''
+
 # Python standard library
 import pathlib
 import json
@@ -124,11 +152,8 @@ def write_table(df, path, index=False, dry_run=False):
 def main():
 
     parser = argparse.ArgumentParser(
-        description=(
-            'Parse stats from bcl2fastq and split by project. '
-            'Tables for split lane runs will be saved in separate '
-            'directories according to the "Project" name.'
-        )
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument(
@@ -137,12 +162,7 @@ def main():
         type=pathlib.Path,
         help='The bcl2fastq output directory containing the "Reports" and "Stats" subdirectories.'
     )
-    # parser.add_argument(
-    #     '--samplesheetfile',
-    #     action='store',
-    #     type=pathlib.Path,
-    #     help='Sample sheet used as input for sequencing and bcl2fastq.'
-    # )
+
     parser.add_argument(
         '--statsfile',
         action='store',
@@ -152,6 +172,7 @@ def main():
             'If --fastqdir is provided, this defaults to "<fastqdir>/Stats/Stats.json".'
         )
     )
+
     parser.add_argument(
         '--outdir',
         action='store',
@@ -159,6 +180,7 @@ def main():
         type=pathlib.Path,
         help='Directory in which to put the output files.'
     )
+
     parser.add_argument(
         '--dry-run',
         action='store_true',
@@ -166,14 +188,17 @@ def main():
         help='Just print the output.'
     )
 
+    # parser.add_argument(
+    #     '--samplesheetfile',
+    #     action='store',
+    #     type=pathlib.Path,
+    #     help='Sample sheet used as input for sequencing and bcl2fastq.'
+    # )
+
     args = parser.parse_args()
     # print(args)
 
-    # # Load the sample sheet.
-    # ss = SampleSheet(args.samplesheetfile)
-    # sample_df = pd.DataFrame([sample.to_json() for sample in ss.samples])
-
-    # Scrape tables from html in the Reports directory.
+    # Scrape tables from html files in the Reports directory.
     tables = extract_tables(args.fastqdir)
 
     # Load stats data.
@@ -186,6 +211,10 @@ def main():
 
     tables['stats_lane_summary'] = make_samples_lane_summary(statsdata)
 
+    # # Load the sample sheet.
+    # ss = SampleSheet(args.samplesheetfile)
+    # sample_df = pd.DataFrame([sample.to_json() for sample in ss.samples])
+    # 
     # # Merge stats with sample sheet.
     # foo = pd.merge(
     #     left=sample_df,
@@ -203,12 +232,15 @@ def main():
     # Get unknown barcodes
     tables['stats_top_unknown_barcodes'] = get_top_unknown_barcodes(statsdata, n=10)
 
+    # Debugging.
     # print(tables)
     # for k in tables:
     #     t = tables[k]
     #     print(k)
     #     print(t)
     
+    # All Lanes: These files are the ones that the Genomics Core will want to
+    # look at. They contain summary stats for all sequences in all lanes.
     # args.outdir.mkdir(parents=True, exist_ok=True)
     out_all = args.outdir / 'all'
     out_all.mkdir(parents=True, exist_ok=True)
@@ -217,17 +249,24 @@ def main():
     _ = write_table(tables['samples_lane_summary'], out_all / 'SampleSummary.csv', dry_run=args.dry_run)
     _ = write_table(tables['stats_top_unknown_barcodes'], out_all / 'TopUnknownBarcodes.csv', dry_run=args.dry_run)
 
-    # Split Lanes
+    # Split Lanes: Each user's data is wholly contained in a subset of the
+    # lanes. We only want to provide the summary stats relevant for the lanes
+    # that contain that user's data.
     for name, grp in tables['samples_lane_summary'].groupby('Project'):
         if name == 'default':
             continue
         lanes = set(grp['Lane'])
         out_project = args.outdir / name
         out_project.mkdir(exist_ok=True)
+
+        # Sample Summary
         _ = write_table(grp, out_project / 'SampleSummary.csv', dry_run=args.dry_run)
 
+        # Lane Summary
         mask = tables['main_lane_summary']['Lane'].isin(lanes)
         _ = write_table(tables['main_lane_summary'].loc[mask], out_project / 'LaneSummary.csv', dry_run=args.dry_run)
+
+        # Top Unknown Barcodes
         mask = tables['stats_top_unknown_barcodes']['Lane'].isin(lanes)
         _ = write_table(tables['stats_top_unknown_barcodes'].loc[mask], out_project / 'TopUnknownBarcodes.csv', dry_run=args.dry_run)
 

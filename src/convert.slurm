@@ -11,6 +11,19 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=bioinformatics@utk.edu
 
+############################################################
+# Convert Illumina BCL data to FASTQ and generate summary statistics.
+#
+# The intended use is that this script is called from the launchconvert.sh
+# script, which is run as a cron job to automatically identify new sequencing
+# runs for conversion.  The principle function of this script is to run
+# bcl2fastq to convert BCL data into FASTQ sequence files.  It provides
+# additional functions for generating summary statistics that can be shared
+# with users.  It also provides a dry-run feature for testing if it is run
+# manually.
+############################################################
+
+
 # set -x
 # set -e
 set -eo pipefail

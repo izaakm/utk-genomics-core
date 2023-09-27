@@ -1,5 +1,15 @@
 #!/bin/bash
 
+############################################################
+# Check for new sequencing runs and submit conversion jobs.
+#
+# This script is intended to be run as a cron job to automate the process of
+# checking for new sequencing runs.  For any new runs, a new job is submitted
+# to convert the BCL data to FASTQ sequencing files using the convert.slurm
+# script. Successful submissions are logged to gensvc/logs/convert.log.
+############################################################
+
+
 # set -x
 # set -e
 set -eo pipefail
@@ -8,8 +18,7 @@ declare help
 declare dry_run
 
 readonly LUSTREDIR="${LUSTREDIR:-/lustre/isaac/proj/UTK0192/gensvc}"
-# BATCHNAME=bcl2fastq_v5.slurm
-# FASTQDIR=./fastq.\$SLURM_JOB_ID
+
 # MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 readonly MAILLIST=bioinformatics@utk.edu
 
@@ -46,8 +55,14 @@ submit() {
     local rundir="$1"
     local outdir="$2"
     submission=(sbatch "$convert_script" -r "$rundir" -o "$outdir")
-    # echo "[DRYRUN] ${submission[@]}"
+
     run "${submission[@]}"
+
+    if [[ $? -eq 0 ]] ; then
+        logger "SUCCESS Sequencing conversion job submitted to Slurm for run '$rundir'"
+    else
+        logger "ERROR Sequencing conversion failed for run '$rundir'"
+    fi
 }
 
 
@@ -77,7 +92,7 @@ logger() {
     msg="$(date +%Y-%m-%dT%H:%M:%S) - ${content[@]}"
     if [[ $dry_run == true ]] ; then
         # Send everything to stdout.
-        echo "[DRYRUN] $msg" # >&2
+        echo "[DRYRUN] $msg"
     else
         echo "$msg" >> "$logfile"
         echo "$msg" >&2 # | tee -a "$logfile"
@@ -146,11 +161,6 @@ main() {
             run mkdir -pv "$outdir"
             run cd "$outdir"
             submit "$rundir" "$outdir"
-            if [[ $? -eq 0 ]] ; then
-                logger "SUCCESS Sequencing conversion job submitted to Slurm for run '$rundir'"
-            else
-                logger "ERROR Sequencing conversion failed for run '$rundir'"
-            fi
             run cd "$LUSTREDIR"
             send_mail $run_id
         fi
