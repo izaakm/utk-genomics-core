@@ -166,3 +166,4 @@ cython_debug/
 #.idea/
 tmp
 .DS_Store
+envs
