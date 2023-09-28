@@ -1,0 +1,2 @@
+pandas==2.1.1
+sample-sheet==0.13.0
