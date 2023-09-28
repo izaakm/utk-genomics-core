@@ -44,7 +44,7 @@ readonly logfile="${sequencing_datadir}/logs/convert.log"
 
 readonly ANACONDA3_SH="${ANACONDA3_SH:-/sw/isaac/applications/anaconda3/2021.05/rhel8_gcc10.2.0/anaconda3-2021.05/etc/profile.d/conda.sh}"
 readonly condaenv=/lustre/isaac/proj/UTK0192/gensvc/conda/envs/gensvc
-readonly extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/src/oit-hpsc-gensvc/src/extract-bcl2fastq-stats.py
+readonly extract_illumina_stats=/lustre/isaac/proj/UTK0192/gensvc/bin/extract-bcl2fastq-stats.py
 
 
 logger() {
