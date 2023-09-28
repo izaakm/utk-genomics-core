@@ -25,7 +25,7 @@ readonly MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
 readonly logfile="${LUSTREDIR}/logs/submit.log"
 readonly miseqdir="${LUSTREDIR}/MiSeqRuns"
 readonly novaseqdir="${LUSTREDIR}"
-readonly convert_script=/lustre/isaac/proj/UTK0192/gensvc/src/oit-hpsc-gensvc/src/convert.slurm
+readonly convert_script=/lustre/isaac/proj/UTK0192/gensvc/bin/convert.slurm
 
 
 run() {
