@@ -213,12 +213,12 @@ run_extract_illumina_stats() {
         logger "[WARNING] Anaconda initialization script does not exist: $ANACONDA3_SH"
     fi
 
-    # run module unload PE-intel
-    run module purge
-    run module load anaconda3
-    run source $ANACONDA3_SH
-    run conda activate
-    run conda activate $condaenv
+    # # run module unload PE-intel
+    # run module purge
+    # run module load anaconda3
+    # run source $ANACONDA3_SH
+    # run conda activate
+    # run conda activate $condaenv
 
     # usage: extract-bcl2fastq-stats.py [-h] [--statsfile STATSFILE]
     #                           [--outdir OUTDIR] [--dry-run] fastqdir
@@ -239,6 +239,7 @@ run_extract_illumina_stats() {
     #                         "<fastqdir>/Stats/Stats.json".
     #   --outdir OUTDIR       Directory in which to put the output files.
     #   --dry-run             Just print the output.
+
     run $extract_illumina_stats $fastqdir --outdir $outdir/summary-stats
 }
 
