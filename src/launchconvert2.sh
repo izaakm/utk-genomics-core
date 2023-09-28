@@ -19,8 +19,8 @@ declare dry_run
 
 readonly LUSTREDIR="${LUSTREDIR:-/lustre/isaac/proj/UTK0192/gensvc}"
 
-# MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
-readonly MAILLIST=bioinformatics@utk.edu
+readonly MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
+#readonly MAILLIST=bioinformatics@utk.edu
 
 readonly logfile="${LUSTREDIR}/logs/submit.log"
 readonly miseqdir="${LUSTREDIR}/MiSeqRuns"
