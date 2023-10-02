@@ -28,7 +28,9 @@
 # set -e
 set -eo pipefail
 
-# ulimit -n 16384
+# Increase the maximum number of files that one process can open because
+# bcl2fastq opens lots of files.
+ulimit -n 16384
 
 # LUSTREDIR=/lustre/isaac/proj/UTK0192/gensvc
 # fastqdir=./fastq.\$SLURM_JOB_ID
