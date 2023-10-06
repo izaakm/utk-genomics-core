@@ -37,7 +37,7 @@ import sys
 
 # Third party
 import pandas as pd
-from sample_sheet import SampleSheet
+# from sample_sheet import SampleSheet
 # import multiqc
 
 
