@@ -324,7 +324,8 @@ main() {
 
     logger "bcl2fastq conversion complete: $fastqdir"
 
-    run_extract_illumina_stats "$fastqdir" "$outdir"
+    # TODO Fix python environment.
+    # run_extract_illumina_stats "$fastqdir" "$outdir"
 
     exit 0
 }
