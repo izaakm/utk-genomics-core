@@ -19,8 +19,9 @@ declare dry_run
 
 readonly LUSTREDIR="${LUSTREDIR:-/lustre/isaac/proj/UTK0192/gensvc}"
 
-readonly MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
-#readonly MAILLIST=bioinformatics@utk.edu
+# readonly MAILLIST=OIT_HPSC_Genomics@utk.edu,genomicscore@utk.edu,rkuster@utk.edu
+readonly MAILLIST=OIT_HPSC_Genomics@utk.edu
+# readonly MAILLIST=bioinformatics@utk.edu
 
 readonly logfile="${LUSTREDIR}/logs/submit.log"
 readonly miseqdir="${LUSTREDIR}/MiSeqRuns"
@@ -76,8 +77,7 @@ send_mail() {
     local run_id="$1"
     local jobid=$(squeue -u $USER | sort -n | tail -1 | awk '{print $1;}')
 
-    # Keep this dryrun for now.
-    echo "[DRYRUN]" mail -s "sequencing completed for $run_id" $MAILLIST << SBATCH_MAIL_EOF
+    mail -s "bcl2fastq conversion submitted: $jobid $run_id" $MAILLIST << SBATCH_MAIL_EOF
 Sequencing run has completed and bcl2fastq conversion with jobid $jobid has been queued for $run_id
 
 You will receive additional mail from Slurm when the conversion job starts and when it completes.
