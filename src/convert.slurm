@@ -327,6 +327,9 @@ main() {
     # TODO Fix python environment.
     # run_extract_illumina_stats "$fastqdir" "$outdir"
 
+    # Make the output directory group-writable.
+    run chmod -R g+w "$outdir"
+
     exit 0
 }
 
