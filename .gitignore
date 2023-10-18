@@ -6,6 +6,7 @@ bin
 envs
 notebooks
 tmp
+src/gensvc/validate
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
