@@ -2,8 +2,12 @@ import pathlib
 import os
 import hashlib
 import pandas as pd
+import re
 
 from sample_sheet import SampleSheet
+from datetime import datetime
+
+regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
 
 _get_path_or_none = lambda name: pathlib.Path(os.getenv(name)) if name in os.environ else None
 
@@ -23,6 +27,8 @@ else:
 
 
 def find(runid, datadir):
+    if not datadir.is_dir():
+        raise ValueError('not a directory: "{datadir}"')
     for item in datadir.glob('*'):
         if item.name == runid:
             return item
@@ -35,9 +41,16 @@ def find_rundir(runid, miseqdir=GENSVC_MISEQDATA, novaseqdir=GENSVC_NOVASEQDATA)
 
 def find_procdir(runid, procdir=GENSVC_PROCDATA):
     rundir = find(runid, procdir)
-    contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
-    return contents[-1]
+    if rundir and rundir.is_dir():
+        contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
+        return contents[-1]
+    else:
+        return None
 
+def new_procdir(runid, procdir=GENSVC_PROCDATA):
+    if not procdir.is_dir():
+        raise ValueError('not a directory: "{procdir}"')
+    return GENSVC_PROCDATA / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
 
 def md5sum(fname):
     hash_md5 = hashlib.md5()
@@ -46,53 +59,25 @@ def md5sum(fname):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
     
-def find_run_samplesheet(rundir, depth=1, verbose=False, as_dataframe=True, include_symlinks=False):
-    # filelist = list(rundir.rglob('*.csv'))
-    # for path in filelist:
-    #     print(path)
-    files = []
-    for i, path in enumerate(rundir.glob('*.csv'), start=1):
-        if not include_symlinks and path.is_symlink():
-            continue
-        try:
-            SampleSheet(path)
-            files.append(dict(
-                path=path,
-                md5=md5sum(path),
-                mtime=path.stat().st_mtime
-            ))
-        except:
-            pass
-    if depth > 1:
-        for i, path in enumerate(rundir.glob('*/*.csv'), start=i+1):
-            if not include_symlinks and path.is_symlink():
-                continue
-            try:
-                SampleSheet(path)
-                files.append(dict(
-                    path=path,
-                    md5=md5sum(path),
-                    mtime=path.stat().st_mtime
-                ))
-            except:
-                pass
-    if verbose:
-        print(f'Scanned {i} files under "{rundir}".')
-        print(f'Found {len(files)} sample sheets.')
-    if as_dataframe:
-        files = pd.DataFrame(files)
-    return files
 
 def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
+
 
 class SeqRun():
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
     def __init__(self, runid=None, rundir=None, procdir=None, instrument='unknown', path_to_samplesheet=None):
-        self._runid = runid
+        if not runid and not rundir:
+            raise ValueError('At least one of `runid` or `rundir` is required')
+        if runid is None:
+            self._runid = regex_runid.search(str(rundir)).group(0)
+        else:
+            self._runid = runid
         self._rundir = rundir
         self._procdir = procdir
+        if instrument not in ['unknown', 'MiSeq', 'NovaSeq']:
+            raise ValueError('`instrument` must be one of "MiSeq", "NovaSeq", or None')
         self._instrument = instrument
         self._path_to_samplesheet = path_to_samplesheet
         self._samplesheet = None
@@ -103,8 +88,19 @@ class SeqRun():
 
     def __repr__(self):
         return (
-            f'<Sequencing run, {self.instrument}, {self.runid}'
+            f'<Sequencing run: {self._instrument}, {self._runid}>'
         )
+
+    def _get_runid(self):
+        return self._runid
+
+    def _set_runid(self, runid):
+        self._runid = runid
+
+    def _del_runid(self):
+        self._runid = None
+
+    runid = property(fget=_get_runid, fset=_set_runid, fdel=_del_runid)
 
     def _get_rundir(self):
         return self._rundir
@@ -164,16 +160,19 @@ class SeqRun():
     samplesheet = property(fget=_get_samplesheet, fset=_set_samplesheet, fdel=_del_samplesheet)
 
     def _get_info(self):
+        if self._info is None:
+            self._set_info()
         return self._info
 
     def _set_info(self):
-        if self.samplesheet is None:
-            raise ValueError('samplesheet is not set')
-        self._info = self._samplesheet.Header.copy()
+        if not isinstance(self._info, dict):
+            self._info = dict()
         self._info['runid'] = self._runid
         self._info['rundir'] = self._rundir
         self._info['procdir'] = self._procdir
         self._info['path_to_samplesheet'] = self._path_to_samplesheet
+        if self.samplesheet:
+            self._info.update(self._samplesheet.Header.copy())
 
     def _del_info(self):
         self._info = None
@@ -242,3 +241,7 @@ class SeqRun():
         self._set_samples()
         self._set_sample_project()
         self._set_is_split_lane()
+
+    def init_procdir(self):
+        self.procdir = new_procdir(self.runid)
+        self._set_info()
