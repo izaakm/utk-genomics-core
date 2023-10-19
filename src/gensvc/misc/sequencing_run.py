@@ -245,3 +245,5 @@ class SeqRun():
     def init_procdir(self):
         self.procdir = new_procdir(self.runid)
         self._set_info()
+
+# END
