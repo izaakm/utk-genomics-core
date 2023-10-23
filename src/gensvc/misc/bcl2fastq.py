@@ -37,6 +37,8 @@ import pathlib
 import json
 import argparse
 import sys
+import os
+import warnings
 
 # Third party
 import pandas as pd
@@ -216,5 +218,45 @@ def write_summary_stats(tables, outdir, dry_run=False):
         _ = write_table(tables['stats_top_unknown_barcodes'].loc[mask], out_project / 'TopUnknownBarcodes.csv', dry_run=dry_run)
 
     return 0
+
+
+def bcl2fastq(seqrun=None, runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None):
+    # Use the seqrun as the basis for the arguments.
+    # Overwrite those arguments from the kwargs, if provided.
+    if seqrun:
+        runfolder_dir = runfolder_dir or seqrun.rundir
+        sample_sheet = sample_sheet or seqrun.path_to_samplesheet
+        output_dir = output_dir or seqrun.procdir / '_bcl2fastq'
+
+    params = dict(
+        runfolder_dir=runfolder_dir,
+        sample_sheet=sample_sheet,
+        output_dir=output_dir,
+        processing_threads=processing_threads or os.cpu_count()
+    )
+
+    if not params.get('runfolder_dir'):
+        warnings.warn('runfolder_dir is required for bcl2fastq')
+
+    cmd = []
+
+    # Setup module.
+    cmd.extend([
+        'source /usr/share/Modules/init/bash ;',
+        'module purge ;',
+        'module load bcl2fastq2 ;'
+    ])
+
+    # Setup the bcl2fastq wrapper.
+    cmd.extend(['bcl2fastq', '--runfolder-dir', params['runfolder_dir']])
+    if params.get('sample_sheet'):
+        cmd.extend(['--sample-sheet', params['sample_sheet']])
+    if params.get('output_dir'):
+        cmd.extend(['--output-dir', params['output_dir']])
+    if params.get('processing_threads'):
+        cmd.extend(['--processing-threads', params['processing_threads']])
+    cmd.append(' ;')
+
+    return cmd
 
 # END
