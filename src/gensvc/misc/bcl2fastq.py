@@ -247,16 +247,26 @@ def bcl2fastq(seqrun=None, runfolder_dir=None, sample_sheet=None, output_dir=Non
         'module load bcl2fastq2 ;'
     ])
 
-    # Setup the bcl2fastq wrapper.
-    cmd.extend(['bcl2fastq', '--runfolder-dir', params['runfolder_dir']])
+    # Re: passing commands to subprocess as str or list:
+    # > args is required for all calls and should be a string, or a sequence of
+    # > program arguments. Providing a sequence of arguments is generally
+    # > preferred, as it allows the module to take care of any required escaping
+    # > and quoting of arguments (e.g. to permit spaces in file names).
+    # > ~ https://docs.python.org/3/library/subprocess.html
+    # However, the simple-slurm module requires a str as input.
+    line = [
+        'bcl2fastq',
+        f'--runfolder-dir {params["runfolder_dir"]}'
+    ]
     if params.get('sample_sheet'):
-        cmd.extend(['--sample-sheet', params['sample_sheet']])
+        line.append(f'--sample-sheet {params["sample_sheet"]}')
     if params.get('output_dir'):
-        cmd.extend(['--output-dir', params['output_dir']])
+        line.append(f'--output-dir {params["output_dir"]}')
     if params.get('processing_threads'):
-        cmd.extend(['--processing-threads', params['processing_threads']])
-    cmd.append(' ;')
+        line.append(f'--processing-threads {params["processing_threads"]}')
+    line.append(' ;')
+    cmd.append(' '.join(line))
 
-    return cmd
+    return '\n'.join(cmd)
 
 # END
