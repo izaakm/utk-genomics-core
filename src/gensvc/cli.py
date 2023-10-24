@@ -10,7 +10,30 @@ import pathlib
 import argparse
 import sys
 
-from gensvc.misc import bcl2fastq
+from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run
+
+
+def run_scan(args):
+    reports.scan_dir(args.directory)
+    return 0
+
+
+def run_bcl2fastq(args):
+    seqrun = sequencing_run.SeqRun(
+        rundir=args.rundir,
+        procdir=args.outdir
+    )
+    print(seqrun.info)
+    # seqrun.init_procdir()
+    command = bcl2fastq.bcl2fastq(
+        seqrun=seqrun
+    )
+    if args.sbatch:
+        batch = slurm.Slurm(**slurm.default_kwargs)
+        print(batch)
+        print(command)
+    else:
+        print(command)
 
 
 def extract_bcl2fastq_stats(args):
@@ -41,6 +64,7 @@ def get_parser():
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
+    # Generate summary stats.
     parse_extract_bcl2fastq_stats = subparsers.add_parser(
         'extract-bcl2fastq-stats', 
         aliases=['ex'],
@@ -74,6 +98,51 @@ def get_parser():
     )
 
     parse_extract_bcl2fastq_stats.set_defaults(func=extract_bcl2fastq_stats)
+
+    # Scan for sequencing runs.
+    parse_reports = subparsers.add_parser(
+        'scan', 
+        aliases=['sc'],
+        help='Scan the given directory for sequencing runs'
+    )
+
+    parse_reports.add_argument(
+        'directory',  # Must be underscore.
+        action='store',
+        type=pathlib.Path,
+        help='The parent directory to scan.'
+    )
+
+    parse_reports.set_defaults(func=run_scan)
+
+    # Convert BCL files to FASTQ.
+    parse_converter = subparsers.add_parser(
+        'convert', 
+        aliases=['co'],
+        help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.'
+    )
+
+    parse_converter.add_argument(
+        'rundir',  # Must be underscore.
+        action='store',
+        type=pathlib.Path,
+        help='Path to sequencing run.'
+    )
+
+    parse_converter.add_argument(
+        '-o', '--outdir',  # Must be underscore.
+        action='store',
+        type=pathlib.Path,
+        help='Path to output directory.'
+    )
+
+    parse_converter.add_argument(
+        '-s', '--sbatch',  # Must be underscore.
+        action='store_true',
+        help='Submit bcl2fastq job to Slurm using `sbatch`.'
+    )
+
+    parse_converter.set_defaults(func=run_bcl2fastq)
 
     return parser
 
