@@ -48,9 +48,9 @@ def find_procdir(runid, procdir=GENSVC_PROCDATA):
         return None
 
 def new_procdir(runid, procdir=GENSVC_PROCDATA):
-    if not procdir.is_dir():
-        raise ValueError('not a directory: "{procdir}"')
-    return GENSVC_PROCDATA / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
+    if not procdir or not procdir.is_dir():
+        raise ValueError(f'not a directory: "{procdir}"')
+    return procdir / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
 
 def md5sum(fname):
     hash_md5 = hashlib.md5()
@@ -242,8 +242,8 @@ class SeqRun():
         self._set_sample_project()
         self._set_is_split_lane()
 
-    def init_procdir(self):
-        self.procdir = new_procdir(self.runid)
+    def init_procdir(self, **kwargs):
+        self.procdir = new_procdir(self.runid, **kwargs)
         self._set_info()
 
 # END
