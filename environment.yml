@@ -1,8 +1,8 @@
 name: gensvc
 channels:
   - conda-forge
-  - defaults
   - bioconda
+  - defaults
 dependencies:
   - ca-certificates
   - certifi
@@ -10,7 +10,10 @@ dependencies:
   - lxml
   - mamba
   - multiqc
+  - nbconvert
+  - openpyxl
   - openssl
   - pandas
   - python
   - sample-sheet
+  - simple_slurm
