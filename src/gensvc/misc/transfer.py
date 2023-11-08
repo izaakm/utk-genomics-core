@@ -1,3 +1,12 @@
+import shutil
+from gensvc.misc import utils
+
+def copy_data(src, dst):
+    print('source      :', subdir)
+    print('destination :', dst)
+    # https://stackoverflow.com/a/10778930
+    # shutil.copytree(src, dst, copy_function=os.link)
+
 def setup_transfer(seqrun=None, procdir=None, transfers=None, ignore_names=['Stats', 'Reports', 'all']):
     # TODO: add dry_run
     if seqrun:
