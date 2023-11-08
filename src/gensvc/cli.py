@@ -10,7 +10,7 @@ import pathlib
 import argparse
 import sys
 
-from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run
+from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run, transfer
 
 
 def run_scan(args):
@@ -41,6 +41,9 @@ def extract_bcl2fastq_stats(args):
     bcl2fastq.write_summary_stats(tables, args.outdir, dry_run=args.dry_run)
     return 0
 
+
+def run_transfer(args):
+    pass
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -107,7 +110,7 @@ def get_parser():
     )
 
     parse_reports.add_argument(
-        'directory',  # Must be underscore.
+        'directory',  
         action='store',
         type=pathlib.Path,
         help='The parent directory to scan.'
@@ -123,29 +126,66 @@ def get_parser():
     )
 
     parse_converter.add_argument(
-        'rundir',  # Must be underscore.
+        'rundir',  
         action='store',
         type=pathlib.Path,
         help='Path to sequencing run.'
     )
 
     parse_converter.add_argument(
-        '-o', '--outdir',  # Must be underscore.
+        '-o', '--outdir',  
         action='store',
         type=pathlib.Path,
         help='Path to output directory.'
     )
 
     parse_converter.add_argument(
-        '-s', '--sbatch',  # Must be underscore.
+        '-s', '--sbatch',  
         action='store_true',
         help='Submit bcl2fastq job to Slurm using `sbatch`.'
     )
 
     parse_converter.set_defaults(func=run_bcl2fastq)
 
-    return parser
+    # Convert BCL files to FASTQ.
+    parse_transfer = subparsers.add_parser(
+        'transfer', 
+        aliases=['tr'],
+        help='Transfer results to project directory.'
+    )
 
+    parse_transfer.add_argument(
+        'runid',  
+        action='store',
+        type=str,
+        help='The <runid> of the sequencing run.'
+    )
+
+    parse_transfer.add_argument(
+        '-f', '--from',  
+        dest='source',
+        action='store',
+        type=pathlib.Path,
+        help='Path to transfer source directory.'
+    )
+
+    parse_transfer.add_argument(
+        '-t', '--to',  
+        dest='destination',
+        action='store',
+        type=pathlib.Path,
+        help='Path to output directory.'
+    )
+
+    parse_transfer.add_argument(
+        '-s', '--sbatch',  
+        action='store_true',
+        help='Run transfer as a Slurm job.'
+    )
+
+    parse_transfer.set_defaults(func=run_transfer)
+
+    return parser
 
 def main():
 
