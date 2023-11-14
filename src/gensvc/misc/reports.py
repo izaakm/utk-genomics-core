@@ -1,15 +1,9 @@
 import re
 import pathlib
 
-from gensvc.misc import sequencing_run
+from gensvc.misc import sequencing_run, utils
 
 regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
-
-def get_runid(path):
-    try:
-        return regex_runid.search(str(path)).group(0)
-    except:
-        return None
 
 def find_seq_runs(dirname):
     if isinstance(dirname, str):
@@ -28,7 +22,7 @@ def list(dirname):
         dirname = pathlib.Path(dirname)
     for path in dirname.iterdir():
         realpath = path.resolve()
-        runid = get_runid(realpath)
+        runid = utils.get_runid(realpath)
         if not runid:
             continue
 
