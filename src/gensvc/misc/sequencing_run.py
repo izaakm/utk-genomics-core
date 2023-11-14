@@ -6,8 +6,9 @@ import re
 
 from sample_sheet import SampleSheet
 from datetime import datetime
+from gensvc.misc import utils, samplesheet
 
-regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
+# regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
 
 _get_path_or_none = lambda name: pathlib.Path(os.getenv(name)) if name in os.environ else None
 
@@ -47,10 +48,12 @@ def find_procdir(runid, procdir=GENSVC_PROCDATA):
     else:
         return None
 
+
 def new_procdir(runid, procdir=GENSVC_PROCDATA):
     if not procdir or not procdir.is_dir():
         raise ValueError(f'not a directory: "{procdir}"')
     return procdir / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
+
 
 def md5sum(fname):
     hash_md5 = hashlib.md5()
@@ -69,14 +72,23 @@ class IlluminaSequencingData():
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
     def __init__(self, rundir, runid=None, instrument='unknown', path_to_samplesheet=None):
         self._path = pathlib.Path(rundir)
+
         if runid is None:
-            self._runid = regex_runid.search(str(rundir)).group(0)
+            # self._runid = regex_runid.search(str(rundir)).group(0)
+            self._runid = utils.get_runid(rundir)
         else:
             self._runid = runid
+
         if instrument not in ['unknown', 'MiSeq', 'NovaSeq']:
             raise ValueError('`instrument` must be one of "MiSeq", "NovaSeq", or None')
         self._instrument = instrument
-        self._path_to_samplesheet = path_to_samplesheet
+
+        if path_to_samplesheet is None:
+            self._path_to_samplesheet, self._all_samplesheets = samplesheet.find_samplesheet(self._path)
+        else:
+            self._path_to_samplesheet = path_to_samplesheet
+            self._all_samplesheets = None
+
         self._samplesheet = None
         self._info = None
         self._samples = None
@@ -179,14 +191,10 @@ class IlluminaSequencingData():
 
     is_split_lane = property(fget=_get_is_split_lane, fdel=_del_is_split_lane)
 
-    def find_samplesheet(self):
-        # HOLD For now, the sample sheet should be passed expilititely.
-        # Reconsider how to handle the situation when there are multiple sample sheets.
-        pass
-
 class ProcessedData():
     def __init__(self, dirname):
         self._dirname = dirname
+
 
 class BCL2FastqData(ProcessedData):
     def __init__(self, rundir, runid=None, **kwargs):

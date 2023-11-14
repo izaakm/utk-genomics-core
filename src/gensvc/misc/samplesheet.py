@@ -1,3 +1,4 @@
+import pathlib
 import re
 
 def read_sample_sheet(path):
@@ -33,3 +34,21 @@ def looks_like_sample_sheet(sample_sheet):
         return True
     else:
         return False
+
+def find_samplesheet(dirname):
+    if isinstance(dirname, str):
+        dirname = pathlib.Path(dirname)
+    found = []
+    real = []
+
+    for path in dirname.iterdir():
+        if looks_like_sample_sheet(path):
+            found.append(path)
+            real.append(path.resolve())
+
+    if len(set(real)) == 1:
+        match = real[0]
+    else:
+        match = None
+    
+    return match, dict(zip(found, real))
