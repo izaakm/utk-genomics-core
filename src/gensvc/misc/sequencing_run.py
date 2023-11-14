@@ -246,4 +246,13 @@ class IlluminaSequencingData():
         self.procdir = new_procdir(self.runid, **kwargs)
         self._set_info()
 
+class ProcessedData():
+    def __init__(self, dirname):
+        self._dirname = dirname
+
+class BCL2FastqData(ProcessedData):
+    def __init__(self, rundir, runid=None, **kwargs):
+        self._rundir = rundir
+        super().__init__(**kwargs)
+
 # END
