@@ -3,6 +3,7 @@ import os
 import hashlib
 import pandas as pd
 import re
+import warnings
 
 from sample_sheet import SampleSheet
 from datetime import datetime
@@ -66,16 +67,32 @@ def md5sum(fname):
 def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
+class Datadir():
+    def __init__(self, path=None):
+        self._path = pathlib.Path(path)
 
-class IlluminaSequencingData():
+    def _get_path(self):
+        return self._path
+
+    path = property(_get_path)
+
+class RawData(Datadir):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class IlluminaSequencingData(RawData):
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
-    def __init__(self, rundir, runid=None, instrument='unknown', path_to_samplesheet=None):
-        self._path = pathlib.Path(rundir)
+    def __init__(self, rundir, runid=None, instrument='unknown', path_to_samplesheet=None, **kwargs):
+        # self._path = pathlib.Path(rundir)
+        if 'path' in kwargs:
+            warnings.warn('The `path` kwarg is ignored. Use `rundir` instead.')
+        self._rundir = pathlib.Path(rundir)
+        kwargs['path'] = self._rundir
 
         if runid is None:
             # self._runid = regex_runid.search(str(rundir)).group(0)
-            self._runid = utils.get_runid(rundir)
+            self._runid = utils.get_runid(self._rundir)
         else:
             self._runid = runid
 
@@ -84,7 +101,7 @@ class IlluminaSequencingData():
         self._instrument = instrument
 
         if path_to_samplesheet is None:
-            self._path_to_samplesheet, self._all_samplesheets = samplesheet.find_samplesheet(self._path)
+            self._path_to_samplesheet, self._all_samplesheets = samplesheet.find_samplesheet(self._rundir)
         else:
             self._path_to_samplesheet = path_to_samplesheet
             self._all_samplesheets = None
@@ -94,17 +111,17 @@ class IlluminaSequencingData():
         self._samples = None
         self._sample_project = None
         self._is_split_lane = None
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return (
             f'<Sequencing run: {self._instrument}, {self._runid}>'
         )
 
-    def _get_path(self):
-        return self._path
+    def _get_rundir(self):
+        return self._rundir
 
-    path = property(_get_path)
-    rundir = path
+    rundir = property(_get_rundir)
 
     def _get_realpath(self):
         return self._path.resolve()
@@ -191,14 +208,22 @@ class IlluminaSequencingData():
 
     is_split_lane = property(fget=_get_is_split_lane, fdel=_del_is_split_lane)
 
-class ProcessedData():
-    def __init__(self, dirname):
-        self._dirname = dirname
+
+class ProcessedData(Datadir):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class BCL2FastqData(ProcessedData):
-    def __init__(self, rundir, runid=None, **kwargs):
+    def __init__(self, rundir, runid=None, runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None, **kwargs):
         self._rundir = rundir
+        self._runid = runid
+        self._runfolder_dir = runfolder_dir
+        self._sample_sheet_orig = sample_sheet
+        self._sample_sheet_copy = None
+        self._output_dir = output_dir
+        self._processing_threads = processing_threads
         super().__init__(**kwargs)
+
 
 # END
