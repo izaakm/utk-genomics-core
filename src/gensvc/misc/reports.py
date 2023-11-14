@@ -1,10 +1,13 @@
 import re
+import pathlib
 
 from gensvc.misc import sequencing_run
 
 regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
 
 def find_seq_runs(dirname):
+    if isinstance(dirname, str):
+        dirname = pathlib.Path(dirname)
     seq_runs = []
     for path in dirname.iterdir():
         try:
@@ -14,7 +17,7 @@ def find_seq_runs(dirname):
             pass
     return sorted(seq_runs, key=lambda item: item[-1])
 
-def scan_dir(dirname):
+def list(dirname):
     for runid, path in find_seq_runs(dirname):
         # print(path)
         # runid = get_runid(path)
@@ -33,3 +36,4 @@ def scan_dir(dirname):
 
     return None
 
+# END

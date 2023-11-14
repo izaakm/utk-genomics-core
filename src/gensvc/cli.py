@@ -9,12 +9,18 @@ Helper for working with data from the Genomics Core.
 import pathlib
 import argparse
 import sys
+import os
 
 from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run, transfer
 
+GENSVC_DATADIR = os.getenv('GENSVC_DATADIR')
+GENSVC_NOVASEQ_DATADIR = os.getenv('GENSVC_NOVASEQ_DATADIR')
+GENSVC_MISEQ_DATADIR = os.getenv('GENSVC_MISEQ_DATADIR')
 
-def run_scan(args):
-    reports.scan_dir(args.directory)
+
+def run_list(args):
+    for d in args.dirs:
+        reports.list(d)
     return 0
 
 
@@ -48,7 +54,7 @@ def run_transfer(args):
 def get_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument(
@@ -71,7 +77,8 @@ def get_parser():
     parse_extract_bcl2fastq_stats = subparsers.add_parser(
         'extract-bcl2fastq-stats', 
         aliases=['ex'],
-        help=bcl2fastq.__doc__.strip().split('\n')[0]
+        help=bcl2fastq.__doc__.strip().split('\n')[0],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parse_extract_bcl2fastq_stats.add_argument(
@@ -102,21 +109,23 @@ def get_parser():
 
     parse_extract_bcl2fastq_stats.set_defaults(func=extract_bcl2fastq_stats)
 
-    # Scan for sequencing runs.
+    # List sequencing runs.
     parse_reports = subparsers.add_parser(
-        'scan', 
-        aliases=['sc'],
-        help='Scan the given directory for sequencing runs'
+        'list', 
+        aliases=['ls', 'scan', 'sc'],
+        help='List sequencing runs in the given director',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parse_reports.add_argument(
-        'directory',  
-        action='store',
+        'dirs',  
         type=pathlib.Path,
-        help='The parent directory to scan.'
+        default=[GENSVC_MISEQ_DATADIR,GENSVC_NOVASEQ_DATADIR],
+        nargs='*',
+        help='One or more directories to list.'
     )
 
-    parse_reports.set_defaults(func=run_scan)
+    parse_reports.set_defaults(func=run_list)
 
     # Convert BCL files to FASTQ.
     parse_converter = subparsers.add_parser(
