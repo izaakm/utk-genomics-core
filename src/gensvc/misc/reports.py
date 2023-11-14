@@ -27,7 +27,7 @@ def list(dirname):
             instrument = 'MiSeq'
         else:
             instrument = 'NovaSeq'
-        seqrun = sequencing_run.SeqRun(
+        seqrun = sequencing_run.IlluminaSequencingData(
             runid=runid,
             rundir=path,
             instrument=instrument

@@ -64,7 +64,7 @@ def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
 
-class SeqRun():
+class IlluminaSequencingData():
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
     def __init__(self, runid=None, rundir=None, procdir=None, instrument='unknown', path_to_samplesheet=None):

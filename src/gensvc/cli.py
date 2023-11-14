@@ -25,7 +25,7 @@ def run_list(args):
 
 
 def run_bcl2fastq(args):
-    seqrun = sequencing_run.SeqRun(
+    seqrun = sequencing_run.IlluminaSequencingData(
         rundir=args.rundir,
         procdir=args.outdir
     )
