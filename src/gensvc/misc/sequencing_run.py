@@ -67,15 +67,12 @@ def samples_to_dataframe(samplesheet):
 class IlluminaSequencingData():
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
-    def __init__(self, runid=None, rundir=None, procdir=None, instrument='unknown', path_to_samplesheet=None):
-        if not runid and not rundir:
-            raise ValueError('At least one of `runid` or `rundir` is required')
+    def __init__(self, rundir, runid=None, instrument='unknown', path_to_samplesheet=None):
+        self._path = pathlib.Path(rundir)
         if runid is None:
             self._runid = regex_runid.search(str(rundir)).group(0)
         else:
             self._runid = runid
-        self._rundir = rundir
-        self._procdir = procdir
         if instrument not in ['unknown', 'MiSeq', 'NovaSeq']:
             raise ValueError('`instrument` must be one of "MiSeq", "NovaSeq", or None')
         self._instrument = instrument
@@ -91,55 +88,32 @@ class IlluminaSequencingData():
             f'<Sequencing run: {self._instrument}, {self._runid}>'
         )
 
+    def _get_path(self):
+        return self._path
+
+    path = property(_get_path)
+    rundir = path
+
+    def _get_realpath(self):
+        return self._path.resolve()
+
+    realpath = property(_get_realpath)
+
     def _get_runid(self):
         return self._runid
 
-    def _set_runid(self, runid):
-        self._runid = runid
-
-    def _del_runid(self):
-        self._runid = None
-
-    runid = property(fget=_get_runid, fset=_set_runid, fdel=_del_runid)
-
-    def _get_rundir(self):
-        return self._rundir
-
-    def _set_rundir(self, rundir):
-        self._rundir = rundir
-
-    def _del_rundir(self):
-        self._rundir = None
-
-    rundir = property(fget=_get_rundir, fset=_set_rundir, fdel=_del_rundir)
+    runid = property(_get_runid)
     
-    def _get_procdir(self):
-        return self._procdir
-
-    def _set_procdir(self, procdir):
-        self._procdir = procdir
-
-    def _del_procdir(self):
-        self._procdir = None
-
-    procdir = property(fget=_get_procdir, fset=_set_procdir, fdel=_del_procdir)
-
     def _get_instrument(self):
         return self._instrument
 
-    def _set_instrument(self, instrument):
-        self._instrument = instrument
-
-    def _del_instrument(self):
-        self._instrument = None
-
-    instrument = property(fget=_get_instrument, fset=_set_instrument, fdel=_del_instrument)
+    instrument = property(_get_instrument)
 
     def _get_path_to_samplesheet(self):
         return self._path_to_samplesheet
 
     def _set_path_to_samplesheet(self, path_to_samplesheet):
-        self._path_to_samplesheet = path_to_samplesheet
+        self._path_to_samplesheet = pathlib.Path(path_to_samplesheet)
 
     def _del_path_to_samplesheet(self):
         self._path_to_samplesheet = None
@@ -147,104 +121,68 @@ class IlluminaSequencingData():
     path_to_samplesheet = property(fget=_get_path_to_samplesheet, fset=_set_path_to_samplesheet, fdel=_del_path_to_samplesheet)
 
     def _get_samplesheet(self):
-        return self._samplesheet
-
-    def _set_samplesheet(self):
         if self.path_to_samplesheet is None:
             raise ValueError('path_to_samplesheet is not set')
-        self._samplesheet = SampleSheet(self.path_to_samplesheet)
+        elif self._samplesheet is None:
+            self._samplesheet = SampleSheet(self.path_to_samplesheet)
+        return self._samplesheet
 
     def _del_samplesheet(self):
         self._samplesheet = None
 
-    samplesheet = property(fget=_get_samplesheet, fset=_set_samplesheet, fdel=_del_samplesheet)
+    samplesheet = property(fget=_get_samplesheet, fdel=_del_samplesheet)
 
     def _get_info(self):
         if self._info is None:
-            self._set_info()
-        return self._info
-
-    def _set_info(self):
-        if not isinstance(self._info, dict):
             self._info = dict()
-        self._info['runid'] = self._runid
-        self._info['rundir'] = self._rundir
-        self._info['procdir'] = self._procdir
-        self._info['path_to_samplesheet'] = self._path_to_samplesheet
-        if self.samplesheet:
-            self._info.update(self._samplesheet.Header.copy())
+            self._info['runid'] = self.runid
+            self._info['rundir'] = self.rundir
+            self._info['path_to_samplesheet'] = self._path_to_samplesheet
+            if self.samplesheet:
+                self._info.update(self._samplesheet.Header.copy())
+        return self._info
 
     def _del_info(self):
         self._info = None
 
-    info = property(fget=_get_info, fset=_set_info, fdel=_del_info)
+    info = property(fget=_get_info, fdel=_del_info)
 
     def _get_samples(self):
-        return self._samples
-
-    def _set_samples(self):
-        if self.samplesheet is None:
+        if self._samplesheet is None:
             raise ValueError('samplesheet is not set')
-        self._samples = samples_to_dataframe(self.samplesheet)
+        elif self._samples is None:
+            self._samples = samples_to_dataframe(self.samplesheet)
+        return self._samples
 
     def _del_samples(self):
         self._samples = None
 
-    samples = property(fget=_get_samples, fset=_set_samples, fdel=_del_samples)
+    samples = property(fget=_get_samples, fdel=_del_samples)
 
     def _get_sample_project(self):
+        if self._sample_project is None:
+            self._sample_project = sorted(set(self.samples['Sample_Project']))
         return self._sample_project
-
-    def _set_sample_project(self):
-        if self.samplesheet is None:
-            raise ValueError('samplesheet is not set')
-        self._sample_project = sorted(set(self.samples['Sample_Project']))
 
     def _del_sample_project(self):
         self._sample_project = None
 
-    sample_project = property(fget=_get_sample_project, fset=_set_sample_project, fdel=_del_sample_project)
+    sample_project = property(fget=_get_sample_project, fdel=_del_sample_project)
 
     def _get_is_split_lane(self):
+        if self._is_split_lane is None:
+            self._is_split_lane = len(self.sample_project) > 1
         return self._is_split_lane
-
-    def _set_is_split_lane(self):
-        if not isinstance(self.sample_project, list):
-            raise ValueError('sample_project should be type list')
-        if not self.sample_project:
-            raise ValueError('sample_project list should not be empty')
-        self._is_split_lane = len(self.sample_project) > 1
 
     def _del_is_split_lane(self):
         self._is_split_lane = None
 
-    is_split_lane = property(fget=_get_is_split_lane, fset=_set_is_split_lane, fdel=_del_is_split_lane)
-
-    def find_datadirs(self):
-        if self._runid is None:
-            raise ValueError('runid not set')
-        if self.rundir is None:
-            self.rundir = find_rundir(self._runid)
-        if self.procdir is None:
-            self.procdir = find_procdir(self._runid)
+    is_split_lane = property(fget=_get_is_split_lane, fdel=_del_is_split_lane)
 
     def find_samplesheet(self):
         # HOLD For now, the sample sheet should be passed expilititely.
         # Reconsider how to handle the situation when there are multiple sample sheets.
         pass
-
-    def load_samplesheet(self, path_to_samplesheet=None):
-        if path_to_samplesheet:
-            self.path_to_samplesheet = path_to_samplesheet
-        self._set_samplesheet()
-        self._set_info()
-        self._set_samples()
-        self._set_sample_project()
-        self._set_is_split_lane()
-
-    def init_procdir(self, **kwargs):
-        self.procdir = new_procdir(self.runid, **kwargs)
-        self._set_info()
 
 class ProcessedData():
     def __init__(self, dirname):
