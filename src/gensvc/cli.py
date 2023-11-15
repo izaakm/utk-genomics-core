@@ -10,13 +10,21 @@ import pathlib
 import argparse
 import sys
 import os
+import tempfile
 
 from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run, transfer
 
-GENSVC_DATADIR = os.getenv('GENSVC_DATADIR')
-GENSVC_NOVASEQ_DATADIR = os.getenv('GENSVC_NOVASEQ_DATADIR')
-GENSVC_MISEQ_DATADIR = os.getenv('GENSVC_MISEQ_DATADIR')
+def as_path(obj):
+    try:
+        return pathlib.Path(obj)
+    except:
+        return None
 
+GENSVC_DATADIR = as_path(os.getenv('GENSVC_DATADIR'))
+GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
+GENSVC_MISEQ_DATADIR = as_path(os.getenv('GENSVC_MISEQ_DATADIR'))
+
+GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
 
 def run_list(args):
     for d in args.dirs:
@@ -25,14 +33,15 @@ def run_list(args):
 
 
 def run_bcl2fastq(args):
-    seqrun = sequencing_run.IlluminaSequencingData(
-        rundir=args.rundir,
-        procdir=args.outdir
-    )
-    print(seqrun.info)
+    print(f'GENSVC_PROCDATA={GENSVC_PROCDATA}')
+    seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
+    # print(seqrun.info)
     # seqrun.init_procdir()
     command = bcl2fastq.bcl2fastq(
-        seqrun=seqrun
+        runfolder_dir=seqrun.realpath,
+        sample_sheet=args.sample_sheet or seqrun.path_to_samplesheet,
+        output_dir=args.output_dir or bcl2fastq.init_output_dir(GENSVC_PROCDATA, seqrun.runid),
+        processing_threads=args.processing_threads or os.cpu_count()
     )
     if args.sbatch:
         batch = slurm.Slurm(**slurm.default_kwargs)
@@ -135,21 +144,35 @@ def get_parser():
     )
 
     parse_converter.add_argument(
-        'rundir',  
+        '-r', '--runfolder-dir',
         action='store',
         type=pathlib.Path,
         help='Path to sequencing run.'
     )
 
     parse_converter.add_argument(
-        '-o', '--outdir',  
+        '-s', '--sample-sheet',  
+        action='store',
+        type=pathlib.Path,
+        help='Path to sample sheet.'
+    )
+
+    parse_converter.add_argument(
+        '-o', '--output-dir',  
         action='store',
         type=pathlib.Path,
         help='Path to output directory.'
     )
 
     parse_converter.add_argument(
-        '-s', '--sbatch',  
+        '-t', '--processing-threads',  
+        action='store',
+        type=int,
+        help='Number of threads to use.'
+    )
+
+    parse_converter.add_argument(
+        '-b', '--sbatch',  
         action='store_true',
         help='Submit bcl2fastq job to Slurm using `sbatch`.'
     )
