@@ -30,3 +30,5 @@ def get_runid(path):
         return _regex_runid.search(str(path)).group(0)
     except:
         return None
+
+# END
