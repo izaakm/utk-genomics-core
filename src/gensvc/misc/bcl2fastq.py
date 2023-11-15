@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 '''
 Work with bcl2fastq and its output.
 
@@ -39,12 +36,14 @@ import argparse
 import sys
 import os
 import warnings
+import pandas as pd
+import tempfile
+
+from datetime import datetime
 
 # Third party
-import pandas as pd
 # from sample_sheet import SampleSheet
 # import multiqc
-
 
 def summarize_sample_stats(sd, lc):
     '''
@@ -220,18 +219,19 @@ def write_summary_stats(tables, outdir, dry_run=False):
     return 0
 
 
-def bcl2fastq(seqrun=None, runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None):
-    # Use the seqrun as the basis for the arguments.
-    # Overwrite those arguments from the kwargs, if provided.
-    if seqrun:
-        runfolder_dir = runfolder_dir or seqrun.rundir
-        sample_sheet = sample_sheet or seqrun.path_to_samplesheet
-        output_dir = output_dir or seqrun.procdir / '_bcl2fastq'
+def init_output_dir(procdir, runid):
+    # if not procdir or not procdir.exists():
+    #     raise ValueError(f'The root processed data directory must exist; you gave: "{procdir}"')
+    if isinstance(procdir, pathlib.Path) and procdir.exists():
+        return procdir / runid / datetime.now().strftime('%Y%m%dT%H%M%S') / '_bcl2fastq'
+    else:
+        return tempfile.mkdtemp()
 
+def bcl2fastq(runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None):
     params = dict(
         runfolder_dir=runfolder_dir,
-        sample_sheet=sample_sheet,
-        output_dir=output_dir,
+        sample_sheet=sample_sheet or seqrun.path_to_samplesheet,
+        output_dir=output_dir or init_output_dir(GENSVC_PROCDATA, seqrun.runid),
         processing_threads=processing_threads or os.cpu_count()
     )
 
@@ -244,7 +244,9 @@ def bcl2fastq(seqrun=None, runfolder_dir=None, sample_sheet=None, output_dir=Non
     cmd.extend([
         'source /usr/share/Modules/init/bash ;',
         'module purge ;',
-        'module load bcl2fastq2 ;'
+        'module load bcl2fastq2 ;',
+        f'mkdir -pv {params["output_dir"]} ;',
+        f'cp -v {params["sample_sheet"]} {params["output_dir"]} ;'
     ])
 
     # Re: passing commands to subprocess as str or list:
