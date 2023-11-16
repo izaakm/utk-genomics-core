@@ -228,11 +228,13 @@ def init_output_dir(procdir, runid):
         return tempfile.mkdtemp()
 
 def bcl2fastq(runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None):
+    # Do not use os.cpu_count on a login node.
+    # TODO Have the batch script get the number of cpus from the environment.
     params = dict(
         runfolder_dir=runfolder_dir,
         sample_sheet=sample_sheet or seqrun.path_to_samplesheet,
         output_dir=output_dir or init_output_dir(GENSVC_PROCDATA, seqrun.runid),
-        processing_threads=processing_threads or os.cpu_count()
+        processing_threads=processing_threads
     )
 
     if not params.get('runfolder_dir'):
