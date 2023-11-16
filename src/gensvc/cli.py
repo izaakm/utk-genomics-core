@@ -37,11 +37,14 @@ def run_bcl2fastq(args):
     seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
     # print(seqrun.info)
     # seqrun.init_procdir()
+
+    # Do not use os.cpu_count() with sbatch.
+    # TODO Have the batch script get the number of cpus from the slurm environment.
     command = bcl2fastq.bcl2fastq(
         runfolder_dir=seqrun.realpath,
         sample_sheet=args.sample_sheet or seqrun.path_to_samplesheet,
         output_dir=args.output_dir or bcl2fastq.init_output_dir(GENSVC_PROCDATA, seqrun.runid),
-        processing_threads=args.processing_threads or os.cpu_count()
+        processing_threads=args.processing_threads
     )
     if args.sbatch:
         batch = slurm.Slurm(**slurm.default_kwargs)
@@ -56,6 +59,15 @@ def extract_bcl2fastq_stats(args):
     bcl2fastq.write_summary_stats(tables, args.outdir, dry_run=args.dry_run)
     return 0
 
+
+def run_setup_transfer(args):
+    procdata = sequencing_run.ProcessedData(path=args.dirname)
+    print(procdata)
+
+    transfer.setup_transfer(
+        procdir=procdata.path,
+        dry_run=args.dry_run
+    )
 
 def run_transfer(args):
     pass
@@ -179,7 +191,29 @@ def get_parser():
 
     parse_converter.set_defaults(func=run_bcl2fastq)
 
-    # Convert BCL files to FASTQ.
+    # Trasfer data to user's project directory.
+    parse_setup_transfer = subparsers.add_parser(
+        'setup_transfer', 
+        aliases=['se'],
+        help='Set up data for tranfer.'
+    )
+
+    parse_setup_transfer.add_argument(
+        'dirname',  
+        action='store',
+        type=str,
+        help='The path to the processed data directory.'
+    )
+
+    parse_setup_transfer.add_argument(
+        '-s', '--sbatch',  
+        action='store_true',
+        help='Run transfer as a Slurm job.'
+    )
+
+    parse_setup_transfer.set_defaults(func=run_setup_transfer)
+
+    # Trasfer data to user's project directory.
     parse_transfer = subparsers.add_parser(
         'transfer', 
         aliases=['tr'],
@@ -206,7 +240,7 @@ def get_parser():
         dest='destination',
         action='store',
         type=pathlib.Path,
-        help='Path to output directory.'
+        help='Path to transfer destination directory.'
     )
 
     parse_transfer.add_argument(

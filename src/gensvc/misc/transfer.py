@@ -1,36 +1,51 @@
 import shutil
 from gensvc.misc import utils
 
-def copy_data(src, dst):
-    print('source      :', subdir)
-    print('destination :', dst)
-    # https://stackoverflow.com/a/10778930
-    # shutil.copytree(src, dst, copy_function=os.link)
+def copy_data(src, dst, dry_run=False):
+    if dry_run:
+        print(f'[DRYRUN] mkdir -pv {dst}')
+        print(f'[DRYRUN] cp -lr {src} -> {dst}')
+    else:
+        print(f'[NOT IMPLEMENTED] mkdir -pv {dst}')  # Is this necessary w/ shutil?
+        print(f'[NOT IMPLEMENTED] cp -lr {src} -> {dst}')
+        # https://stackoverflow.com/a/10778930
+        # shutil.copytree(src, dst, copy_function=os.link)
 
-def setup_transfer(seqrun=None, procdir=None, transfers=None, ignore_names=['Stats', 'Reports', 'all']):
+def setup_transfer(procdir=None, transfers=None, ignore_names=['Stats', 'Reports', 'all'], dry_run=False, debug=False):
     # TODO: add dry_run
-    if seqrun:
-        # Set default values from seqrun.
-        procdir = procdir or seqrun.procdir
-        transfers = transfers or seqrun.procdir / 'transfers'
+    transfers = transfers or procdir / '_transfers'
 
-    transfers = transfers or procdir / 'transfers'
-
-    for dir in procdir.iterdir():
-        if not dir.name in ['fastq', 'SummaryStatistics']:
+    for results_dir in procdir.iterdir():
+        # print(results_dir)
+        if not results_dir.is_dir():
+            print(f'[DEBUG] not a directory: {results_dir}') if debug else None
+            continue
+        elif not results_dir.name in ['fastq', '_bcl2fastq', 'SummaryStatistics']:
+            # Only enabled for certain directories.
+            print(f'[DEBUG] name not allowed: {results_dir}') if debug else None
             continue
             
-        for subdir in dir.iterdir():
-            # print(dir)
-            if not subdir.is_dir():
+        for results_subdir in results_dir.iterdir():
+            if not results_subdir.is_dir():
+                print(f'[DEBUG] results_subdir is not a dir: {results_subdir}') if debug else None
                 continue
-            elif subdir.name in ignore_names:
+            elif results_subdir.name in ignore_names:
+                print(f'[DEBUG] results_subdir name is ignored: {results_subdir}') if debug else None
                 continue
-            print('source      :', subdir)
-        
-            project = subdir.name
-            group = subdir.parent.name
-            dest = transfers / project / group
-            print('destination :', dest)
-            # https://stackoverflow.com/a/10778930
-            # shutil.copytree(src, dst, copy_function=os.link)
+
+            # print(f'[DEBUG] results_subdir: {results_subdir}')
+            # Eg: .../processed/231024_M04398_0066_000000000-LBLPL/20231025T120002/fastq/UTK_skuschke_Miller_231024 
+            #                                                                            ^ results_subdir = sample_project (current working directory)
+            #                                                                      ^ results_dir
+            #                                                      ^ procdir
+            sample_project = results_subdir.name
+            print(f'[DEBUG] sample_project: {sample_project}') if debug else None
+            results_dir = results_subdir.parent.name
+            print(f'[DEBUG] results_dir: {results_dir}') if debug else None
+            dest = transfers / sample_project / results_dir
+            copy_data(results_subdir, dest, dry_run=dry_run)
+
+def transfer_data(source, destination, reference_file=None, dry_run=False, debug=False):
+    print(f'[NOT IMPLEMENTED] mkdir -pv {destination}')
+    print(f'[NOT IMPLEMENTED] cp -r {source} -> {destination}')
+    print(f'[NOT IMPLEMENTED] chown --reference={reference_file} {destination} # --reference is only in GNU chown')
