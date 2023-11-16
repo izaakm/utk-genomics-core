@@ -71,10 +71,18 @@ class Datadir():
     def __init__(self, path=None):
         self._path = pathlib.Path(path)
 
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: {self._path}>'
+
     def _get_path(self):
         return self._path
 
     path = property(_get_path)
+
+    def _get_realpath(self):
+        return self._path.resolve()
+
+    realpath = property(_get_realpath)
 
 class RawData(Datadir):
     def __init__(self, **kwargs):
@@ -225,5 +233,8 @@ class BCL2FastqData(ProcessedData):
         self._processing_threads = processing_threads
         super().__init__(**kwargs)
 
+class TransferData(ProcessedData):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 # END
