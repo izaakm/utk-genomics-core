@@ -123,7 +123,7 @@ class IlluminaSequencingData(RawData):
 
     def __repr__(self):
         return (
-            f'<Sequencing run: {self._instrument}, {self._runid}>'
+            f'<{self.__class__.__name__}: {self.instrument}, {self.runid}>'
         )
 
     def _get_rundir(self):
@@ -142,6 +142,9 @@ class IlluminaSequencingData(RawData):
     runid = property(_get_runid)
     
     def _get_instrument(self):
+        if self._instrument == 'unknown':
+            if self.samplesheet:
+                self._instrument = self.samplesheet.Header.get('Instrument Type', 'unknown')
         return self._instrument
 
     instrument = property(_get_instrument)
@@ -158,10 +161,9 @@ class IlluminaSequencingData(RawData):
     path_to_samplesheet = property(fget=_get_path_to_samplesheet, fset=_set_path_to_samplesheet, fdel=_del_path_to_samplesheet)
 
     def _get_samplesheet(self):
-        if self.path_to_samplesheet is None:
-            raise ValueError('path_to_samplesheet is not set')
-        elif self._samplesheet is None:
-            self._samplesheet = SampleSheet(self.path_to_samplesheet)
+        if self._samplesheet is None:
+            if self.path_to_samplesheet:
+                self._samplesheet = SampleSheet(self.path_to_samplesheet)
         return self._samplesheet
 
     def _del_samplesheet(self):
@@ -176,7 +178,8 @@ class IlluminaSequencingData(RawData):
             self._info['rundir'] = self.rundir
             self._info['path_to_samplesheet'] = self._path_to_samplesheet
             if self.samplesheet:
-                self._info.update(self._samplesheet.Header.copy())
+                self._info.update(self.samplesheet.Header.copy())
+                self._info['sample_project'] = self.sample_project
         return self._info
 
     def _del_info(self):
@@ -185,7 +188,7 @@ class IlluminaSequencingData(RawData):
     info = property(fget=_get_info, fdel=_del_info)
 
     def _get_samples(self):
-        if self._samplesheet is None:
+        if self.samplesheet is None:
             raise ValueError('samplesheet is not set')
         elif self._samples is None:
             self._samples = samples_to_dataframe(self.samplesheet)
