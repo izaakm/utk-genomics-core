@@ -27,24 +27,37 @@ def read_sample_sheet(path):
     
     return sample_sheet
 
-def looks_like_sample_sheet(sample_sheet):
-    if isinstance(sample_sheet, (str, pathlib.Path)):
-        sample_sheet = read_sample_sheet(sample_sheet)
+def looks_like_sample_sheet(path):
+    if not isinstance(path, pathlib.Path):
+        try:
+            path = pathlib.Path(path)
+        except:
+            return False
+
+    if not path.is_file():
+        return False
+
+    sample_sheet = read_sample_sheet(path)
     if sample_sheet.get('Header') and sample_sheet.get('Reads') and sample_sheet.get('Data'):
         return True
     else:
         return False
 
 def find_samplesheet(dirname):
-    if isinstance(dirname, str):
-        dirname = pathlib.Path(dirname)
+    '''
+    Search a directory for an Illumina Sample Sheet file.
+    '''
     found = []
     real = []
 
+    if not isinstance(dirname, pathlib.Path):
+        dirname = pathlib.Path(dirname)
+
     for path in dirname.iterdir():
-        if looks_like_sample_sheet(path):
-            found.append(path)
-            real.append(path.resolve())
+        if path.is_file():
+            if looks_like_sample_sheet(path):
+                found.append(path)
+                real.append(path.resolve())
 
     if len(set(real)) == 1:
         match = real[0]
