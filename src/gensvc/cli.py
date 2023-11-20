@@ -28,7 +28,7 @@ GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
 
 def run_list(args):
     for d in args.dirs:
-        reports.list(d)
+        reports.list(d, long=args.long)
     return 0
 
 
@@ -144,6 +144,12 @@ def get_parser():
         default=[GENSVC_MISEQ_DATADIR,GENSVC_NOVASEQ_DATADIR],
         nargs='*',
         help='One or more directories to list.'
+    )
+
+    parse_reports.add_argument(
+        '-l', '--long',
+        action='store_true',
+        help='List more stuff.'
     )
 
     parse_reports.set_defaults(func=run_list)
