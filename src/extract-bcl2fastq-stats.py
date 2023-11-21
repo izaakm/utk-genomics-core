@@ -136,9 +136,21 @@ def extract_tables(fastqdir):
     # len(data)
     
     # data[0]
-    tables['samples_flowcell_summary'] = data[1]
-    tables['samples_lane_summary'] = data[2]
-    tables['samples_top_unknown_barcodes'] = data[3]
+    try:
+        # print(data[1].columns)
+        tables['samples_flowcell_summary'] = data[1]
+    except:
+        pass
+    try:
+        # print(data[2].columns)
+        tables['samples_lane_summary'] = data[2]
+    except:
+        pass
+    try:
+        # print(data[3].columns)
+        tables['samples_top_unknown_barcodes'] = data[3]
+    except:
+        pass
 
     return tables
 
