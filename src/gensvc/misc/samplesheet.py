@@ -37,7 +37,11 @@ def looks_like_sample_sheet(path):
     if not path.is_file():
         return False
 
-    sample_sheet = read_sample_sheet(path)
+    try:
+        sample_sheet = read_sample_sheet(path)
+    except:
+        return False
+
     if sample_sheet.get('Header') and sample_sheet.get('Reads') and sample_sheet.get('Data'):
         return True
     else:
