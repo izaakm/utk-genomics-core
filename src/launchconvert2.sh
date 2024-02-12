@@ -25,7 +25,8 @@ readonly MAILLIST=OIT_HPSC_Genomics@utk.edu
 
 readonly logfile="${LUSTREDIR}/logs/submit.log"
 readonly miseqdir="${LUSTREDIR}/MiSeqRuns"
-readonly novaseqdir="${LUSTREDIR}"
+# readonly novaseqdir="${LUSTREDIR}"
+readonly novaseqdir="${LUSTREDIR}/NovaSeqRuns"
 readonly convert_script=/lustre/isaac/proj/UTK0192/gensvc/bin/convert.slurm
 
 
@@ -77,7 +78,7 @@ send_mail() {
     local run_id="$1"
     local jobid=$(squeue -u $USER | sort -n | tail -1 | awk '{print $1;}')
 
-    mail -s "bcl2fastq conversion submitted: $jobid $run_id" $MAILLIST << SBATCH_MAIL_EOF
+    run mail -s "bcl2fastq conversion submitted: $jobid $run_id" $MAILLIST << SBATCH_MAIL_EOF
 Sequencing run has completed and bcl2fastq conversion with jobid $jobid has been queued for $run_id
 
 You will receive additional mail from Slurm when the conversion job starts and when it completes.
@@ -162,7 +163,7 @@ main() {
             run cd "$outdir"
             submit "$rundir" "$outdir"
             run cd "$LUSTREDIR"
-            send_mail $run_id
+            send_mail $run_id || echo "[ERROR] Mail command failed: do you have the correct permissions?"
         fi
     done
 
