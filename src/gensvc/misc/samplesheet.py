@@ -2,8 +2,8 @@ import pathlib
 import re
 
 def read_sample_sheet(path):
-    # header = re.compile('^\[\s*Header\s*]')
-    section = re.compile('^\[\s*(\w+)\s*]')
+    # header = re.compile(r'^\[\s*Header\s*]')
+    section = re.compile(r'^\[\s*(\w+)\s*]')
     
     sample_sheet = dict()
     lines = []

@@ -4,7 +4,7 @@ import re
 
 _get_path_or_none = lambda name: pathlib.Path(os.getenv(name)) if name in os.environ else None
 
-_regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
+_regex_runid = re.compile(r'[^\/]*\d{6}[^\/]*')
 
 def get_env():
     env = dict()

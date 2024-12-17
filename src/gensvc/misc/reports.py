@@ -3,7 +3,7 @@ import pathlib
 
 from gensvc.misc import sequencing_run, utils
 
-regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
+regex_runid = re.compile(r'[^\/]*\d{6}[^\/]*')
 
 def find_seq_runs(dirname):
     if not isinstance(dirname, pathlib.Path):
