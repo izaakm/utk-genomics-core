@@ -1,3 +1,4 @@
+*.out
 *.svg
 .DS_Store
 .env
@@ -5,8 +6,8 @@
 bin
 envs
 notebooks
-tmp
 src/gensvc/validate
+tmp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
