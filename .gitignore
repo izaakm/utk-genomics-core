@@ -2,6 +2,7 @@
 *.svg
 .DS_Store
 .env
+logs
 .ipynb_checkpoints
 bin
 envs
