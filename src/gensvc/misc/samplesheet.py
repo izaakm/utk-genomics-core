@@ -27,7 +27,7 @@ def read_sample_sheet(path):
     
     return sample_sheet
 
-def looks_like_sample_sheet(path):
+def looks_like_samplesheet(path):
     if not isinstance(path, pathlib.Path):
         try:
             path = pathlib.Path(path)
@@ -59,13 +59,47 @@ def find_samplesheet(dirname):
 
     for path in dirname.iterdir():
         if path.is_file():
-            if looks_like_sample_sheet(path):
+            if looks_like_samplesheet(path):
                 found.append(path)
                 real.append(path.resolve())
 
-    if len(set(real)) == 1:
-        match = real[0]
-    else:
-        match = None
-    
-    return match, dict(zip(found, real))
+    # if len(set(real)) == 1:
+    #     match = real[0]
+    # else:
+    #     match = None
+    # return dict(zip(found, real))
+
+    return sorted(real)
+
+class SampleSheet:
+    def __init__(self, path, data=None):
+        self._path = path
+        self._data = data
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: {self._path}>'
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, value):
+        self._path = pathlib.Path(value)
+
+    @property
+    def realpath(self):
+        return self._path.resolve()
+
+    @property
+    def data(self):
+        if not self._data:
+            self._data = read_sample_sheet(self.path)
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if isinstance(value, dict):
+            self._data = value
+        else:
+            self._data = {}
