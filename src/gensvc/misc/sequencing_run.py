@@ -1,3 +1,18 @@
+'''
+>>> import importlib
+>>> import pathlib
+>>> from gensvc.misc import sequencing_run
+>>> path = pathlib.Path('/lustre/isaac/proj/UTK0192/gensvc/NovaSeqRuns/241216_A01770_0089_BHT2C5DSXC/')
+>>> seqrun = sequencing_run.IlluminaSequencingData(path)
+>>> print(seqrun.path_to_samplesheet)
+>>> seqrun.find_samplesheet()
+>>> print(seqrun.path_to_samplesheet)
+>>> print(seqrun.samplesheet)
+>>> print(seqrun.samplesheet.path)
+>>> print(seqrun.samplesheet.data)
+'''
+
+
 import pathlib
 import os
 import hashlib
@@ -5,13 +20,25 @@ import pandas as pd
 import re
 import warnings
 
-from sample_sheet import SampleSheet
+# from sample_sheet import SampleSheet
 from datetime import datetime
-from gensvc.misc import utils, samplesheet
+# from gensvc.misc import utils, samplesheet
+from gensvc.misc import utils
+# from gensvc import misc
+from gensvc.misc import samplesheet as ss
 
 # regex_runid = re.compile('[^\/]*\d{6}[^\/]*')
 
 _get_path_or_none = lambda name: pathlib.Path(os.getenv(name)) if name in os.environ else None
+
+_instrument_id ={
+    'FS10003266': 'iSeq',
+    'M04398': 'MiSeq',
+    'VL00838': 'NextSeq',
+    'A01770': 'NovaSeq'
+}
+
+_instruments = sorted(_instrument_id.values())
 
 if 'GENSVC_DIR' in os.environ:
     GENSVC_DIR = pathlib.Path(os.getenv('GENSVC_DIR'))
@@ -91,12 +118,11 @@ class RawData(Datadir):
 class IlluminaSequencingData(RawData):
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
-    def __init__(self, rundir, runid=None, instrument='unknown', path_to_samplesheet=None, **kwargs):
+    def __init__(self, rundir, runid=None, instrument=None, path_to_samplesheet=None, **kwargs):
         # self._path = pathlib.Path(rundir)
         if 'path' in kwargs:
             warnings.warn('The `path` kwarg is ignored. Use `rundir` instead.')
         self._rundir = pathlib.Path(rundir)
-        kwargs['path'] = self._rundir
 
         if runid is None:
             # self._runid = regex_runid.search(str(rundir)).group(0)
@@ -104,27 +130,38 @@ class IlluminaSequencingData(RawData):
         else:
             self._runid = runid
 
-        if instrument not in ['unknown', 'MiSeq', 'NovaSeq']:
-            raise ValueError('`instrument` must be one of "MiSeq", "NovaSeq", or None')
-        self._instrument = instrument
-
-        if path_to_samplesheet is None:
-            self._path_to_samplesheet, self._all_samplesheets = samplesheet.find_samplesheet(self._rundir)
+        if instrument is None:
+            for id_, name in _instrument_id.items():
+                if id_ in self._runid:
+                    self._instrument = name
+                    break
+        elif instrument not in _instruments:
+            raise ValueError(f'`instrument` must be one of {_instruments!r} or None')
         else:
-            self._path_to_samplesheet = path_to_samplesheet
-            self._all_samplesheets = None
+            self._instrument = 'UNKNOWN'
 
+        # if path_to_samplesheet is None:
+        #     self._path_to_samplesheet, self._all_samplesheets = samplesheet.find_samplesheet(self._rundir)
+        # else:
+        #     self._path_to_samplesheet = path_to_samplesheet
+        #     self._all_samplesheets = None
+
+        # # self._path_to_samplesheet = path_to_samplesheet
+        # if path_to_samplesheet is None:
+        #     tmp = self._rundir / 'SampleSheet.csv'
+        #     if tmp.is_file():
+        #         self._path_to_samplesheet = tmp
+        #     else:
+        #         print('[WARNING] No sample sheet')
+        # else:
+        #     self._path_to_samplesheet = path_to_samplesheet
+        self._path_to_samplesheet = path_to_samplesheet
         self._samplesheet = None
         self._info = None
         self._samples = None
         self._sample_project = None
         self._is_split_lane = None
-        super().__init__(**kwargs)
-
-    def __repr__(self):
-        return (
-            f'<{self.__class__.__name__}: {self.instrument}, {self.runid}>'
-        )
+        super().__init__(path=self._rundir)
 
     def _get_rundir(self):
         return self._rundir
@@ -149,34 +186,57 @@ class IlluminaSequencingData(RawData):
 
     instrument = property(_get_instrument)
 
-    def _get_path_to_samplesheet(self):
+    # def _get_path_to_samplesheet(self):
+    #     return self._path_to_samplesheet
+    # def _set_path_to_samplesheet(self, path_to_samplesheet):
+    #     self._path_to_samplesheet = pathlib.Path(path_to_samplesheet)
+    # def _del_path_to_samplesheet(self):
+    #     self._path_to_samplesheet = None
+    # path_to_samplesheet = property(fget=_get_path_to_samplesheet, fset=_set_path_to_samplesheet, fdel=_del_path_to_samplesheet)
+
+    @property
+    def path_to_samplesheet(self):
         return self._path_to_samplesheet
 
-    def _set_path_to_samplesheet(self, path_to_samplesheet):
-        self._path_to_samplesheet = pathlib.Path(path_to_samplesheet)
+    @path_to_samplesheet.setter
+    def path_to_samplesheet(self, path):
+        self._path_to_samplesheet = pathlib.Path(path)
 
-    def _del_path_to_samplesheet(self):
-        self._path_to_samplesheet = None
+    # def _get_samplesheet(self):
+    #     if self._samplesheet is None:
+    #         if self.path_to_samplesheet:
+    #             # self._samplesheet = SampleSheet(self.path_to_samplesheet)
+    #             self._samplesheet = ss.read_sample_sheet(self.path_to_samplesheet)
+    #     return self._samplesheet
+    # def _del_samplesheet(self):
+    #     self._samplesheet = None
+    # samplesheet = property(fget=_get_samplesheet, fdel=_del_samplesheet)
 
-    path_to_samplesheet = property(fget=_get_path_to_samplesheet, fset=_set_path_to_samplesheet, fdel=_del_path_to_samplesheet)
-
-    def _get_samplesheet(self):
-        if self._samplesheet is None:
-            if self.path_to_samplesheet:
-                self._samplesheet = SampleSheet(self.path_to_samplesheet)
+    @property
+    def samplesheet(self):
+        if not self._samplesheet:
+            self.samplesheet = ss.SampleSheet(self.path_to_samplesheet)
         return self._samplesheet
 
-    def _del_samplesheet(self):
-        self._samplesheet = None
+    @samplesheet.setter
+    def samplesheet(self, value):
+        if value is None:
+            raise ValueError(f'A path is required but you gave "{value}"')
+        self._samplesheet = value
 
-    samplesheet = property(fget=_get_samplesheet, fdel=_del_samplesheet)
+    def find_samplesheet(self):
+        found_items = ss.find_samplesheet(self._rundir)
+        if len(found_items) == 1:
+            self.path_to_samplesheet = found_items[0]
+        else:
+            print(f'Found {len(found_items)} possible sample sheets: {found_items!r}')
 
     def _get_info(self):
         if self._info is None:
             self._info = dict()
             self._info['runid'] = self.runid
             self._info['rundir'] = self.rundir
-            self._info['path_to_samplesheet'] = self._path_to_samplesheet
+            self._info['path_to_samplesheet'] = self.path_to_samplesheet
             if self.samplesheet:
                 self._info.update(self.samplesheet.Header.copy())
                 self._info['sample_project'] = self.sample_project
