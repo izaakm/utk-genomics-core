@@ -18,6 +18,7 @@ import os
 import hashlib
 import pandas as pd
 import re
+import sys
 import warnings
 
 # from sample_sheet import SampleSheet
@@ -128,11 +129,12 @@ class IlluminaSequencingData(RawData):
             warnings.warn('The `path` kwarg is ignored. Use `rundir` instead.')
         self._rundir = pathlib.Path(rundir)
 
-        if runid is None:
-            # self._runid = regex_runid.search(str(rundir)).group(0)
-            self._runid = utils.get_runid(self._rundir)
-        else:
-            self._runid = runid
+        # if runid is None:
+        #     # self._runid = regex_runid.search(str(rundir)).group(0)
+        #     self._runid = utils.get_runid(self._rundir)
+        # else:
+        #     self._runid = runid
+        self._runid = self._rundir.name
 
         if instrument is None:
             for id_, name in _instrument_id.items():
@@ -185,13 +187,15 @@ class IlluminaSequencingData(RawData):
         self._samplesheet = value
 
     def find_samplesheet(self):
-        found_items = ss.find_samplesheet(self._rundir)
-        if len(found_items) == 1:
-            self.path_to_samplesheet = found_items[0]
+        found_items = ss.find_samplesheet(self.rundir)
+        if len(found_items) == 0:
+            raise ValueError(f'No sample sheet found: {self.path}')
         else:
-            print(f'Found {len(found_items)} possible sample sheets:')
-            for item in found_items:
-                print(item)
+            self.path_to_samplesheet = found_items[0]
+            if len(found_items) > 1:
+                print(f'[WARNING] Found {len(found_items)} possible sample sheets:', file=sys.stderr)
+                for item in found_items:
+                    print(item, file=sys.stderr)
 
     @property
     def samples(self):
@@ -203,9 +207,14 @@ class IlluminaSequencingData(RawData):
 
     @property
     def sample_project(self):
+        print('[WARNING] the "sample_project" property is DEPRECATED')
         if self._sample_project is None:
             self._sample_project = sorted(set(self.samples['Sample_Project']))
         return self._sample_project
+
+    @property
+    def projects(self):
+        return self.samplesheet.projects
 
     @property
     def is_split_lane(self):

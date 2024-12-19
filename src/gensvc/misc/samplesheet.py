@@ -113,48 +113,58 @@ def read_samplesheet(path):
     return sample_sheet
 
 def looks_like_samplesheet(path):
+    # print('Checking path ...')
     if not isinstance(path, pathlib.Path):
         try:
             path = pathlib.Path(path)
         except:
+            # print('Cannot convert to path.')
             return False
 
     if not path.is_file():
+        # print('Not a file.')
         return False
 
     try:
-        sample_sheet = read_sample_sheet(path)
+        sample_sheet = read_samplesheet(path)
     except:
+        # print('Cannot read file.')
         return False
 
-    if sample_sheet.get('Header') and sample_sheet.get('Reads') and sample_sheet.get('Data'):
+    if sample_sheet.get('Header') and sample_sheet.get('Reads'):
+        # print('FOUND SAMPLE SHEET!!!')
         return True
     else:
+        # print('Missing "Header" or "Reads"')
         return False
 
 def find_samplesheet(dirname):
     '''
     Search a directory for an Illumina Sample Sheet file.
-    '''
-    found = []
-    real = []
 
+    [TODO] Sort multiple sample sheets by modified time.
+    '''
+    canonical = []
+    real = []
+    symlinks = []
+
+    # print(dirname)
     if not isinstance(dirname, pathlib.Path):
         dirname = pathlib.Path(dirname)
 
+    # print(dirname)
     for path in dirname.iterdir():
-        if path.is_file():
+        # print(path)
+        if path.is_file() and path.suffix == '.csv':
             if looks_like_samplesheet(path):
-                found.append(path)
-                real.append(path.resolve())
-
-    # if len(set(real)) == 1:
-    #     match = real[0]
-    # else:
-    #     match = None
-    # return dict(zip(found, real))
-
-    return sorted(real)
+                path = path.absolute()
+                if path.name == 'SampleSheet.csv':
+                    canonical.append(path)
+                elif path.is_symlink():
+                    symlinks.append(path)
+                else:
+                    real.append(path)
+    return canonical + real + symlinks
 
 
 class SampleSheet:
@@ -224,3 +234,7 @@ class SampleSheet:
         return self._data
     
     samples = Data
+
+    @property
+    def projects(self):
+        return sorted(set([row.get('Sample_Project') for row in self.Data]))
