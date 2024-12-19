@@ -1,7 +1,92 @@
 import pathlib
 import re
+import csv
 
-def read_sample_sheet(path):
+from io import StringIO
+
+
+def csv_read(content):
+    '''
+    This is the preferred function for reading CSV data. This function and
+    'csv_split' are similar in performance on small data sets, but 'csv_split'
+    is really just included for comparison.
+    '''
+    if isinstance(content, list):
+        content = '\n'.join(content)
+    f = StringIO(content)
+    reader = csv.reader(f)
+    for row in reader:
+        yield row
+
+
+def csv_split(content):
+    '''
+    This function and 'csv_read' are similar in performance on small data sets,
+    but 'csv_read' should be preferred because it uses 'csv.reader' from the
+    standard lib, and is therefore expected to be more reliable.
+    '''
+    if isinstance(content, str):
+        content = content.split('\n')
+    for line in content:
+        yield line.split(',')
+
+
+def parse_header(list_of_lines, csv_reader=csv_read):
+    '''
+    Parse the 'Header' section of an Illumina Sample Sheet.
+    '''
+    data = {}
+    reader = csv_reader(list_of_lines)
+    for row in reader:
+        vals = [i for i in row if i]
+        if not vals:
+            continue
+        elif len(vals) != 2:
+            raise ValueError(f'Too many values: {vals!r}')
+        else:
+            data[vals[0]] = vals[1]
+    return data
+
+
+def parse_reads(list_of_lines, csv_reader=csv_read):
+    '''
+    Parse the 'Reads' section of an Illumina Sample Sheet.
+    '''
+    reader = csv_reader(list_of_lines)
+    data = []
+    for row in reader:
+        tmp = [int(i) for i in row if i]
+        if tmp:
+            data.append(tmp)
+    return data
+
+
+def parse_settings(list_of_lines, csv_reader=csv_read):
+    '''
+    Parse the 'Settings' section of an Illumina Sample Sheet.
+    '''
+    reader = csv_reader(list_of_lines)
+    data = []
+    for row in reader:
+        tmp = [i for i in row if i]
+        if tmp:
+            data.append(tmp)
+    return data
+
+
+def parse_data(list_of_lines, csv_reader=csv_read):
+    '''
+    Parse the 'Data' (samples) section of an Illumina Sample Sheet.
+    '''
+    reader = csv_reader(list_of_lines)
+    header = next(reader)
+    data = []
+    for row in reader:
+        data.append(dict(zip(header, row)))
+    return data
+
+
+def read_samplesheet(path):
     # header = re.compile(r'^\[\s*Header\s*]')
     section = re.compile(r'^\[\s*(\w+)\s*]')
     
@@ -71,13 +156,18 @@ def find_samplesheet(dirname):
 
     return sorted(real)
 
+
 class SampleSheet:
-    def __init__(self, path, data=None):
+    def __init__(self, path):
         self._path = path
-        self._data = data
+        self._content = None
+        self._header = None
+        self._reads = None
+        self._settings = None
+        self._data = None
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}: {self._path}>'
+        return f'{self.__class__.__name__}("{self._path}")'
 
     @property
     def path(self):
@@ -92,14 +182,45 @@ class SampleSheet:
         return self._path.resolve()
 
     @property
-    def data(self):
-        if not self._data:
-            self._data = read_sample_sheet(self.path)
-        return self._data
+    def text(self):
+        return self.path.read_text()
 
-    @data.setter
-    def data(self, value):
-        if isinstance(value, dict):
-            self._data = value
-        else:
-            self._data = {}
+    @property
+    def content(self):
+        '''
+        Helper for the other properties. Read the data and parse it into
+        sections, but don't actually parse the sections yet.
+        '''
+        if not self._content:
+            self._content = read_samplesheet(self.path)
+        return self._content
+
+    @property
+    def sections(self):
+        return [key for key in self.content.keys()]
+
+    @property
+    def Header(self):
+        if not self._header:
+            self._header = parse_header(self.content.get('Header', []))
+        return self._header
+
+    @property
+    def Reads(self):
+        if not self._reads:
+            self._reads = parse_reads(self.content.get('Reads', []))
+        return self._reads
+
+    @property
+    def Settings(self):
+        if not self._settings:
+            self._settings = parse_settings(self.content.get('Settings', []))
+        return self._settings
+
+    @property
+    def Data(self):
+        if not self._data:
+            self._data = parse_data(self.content.get('Data', []))
+        return self._data
+    
+    samples = Data
