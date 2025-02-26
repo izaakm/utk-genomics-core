@@ -21,10 +21,13 @@ def as_path(obj):
         return None
 
 GENSVC_DATADIR = as_path(os.getenv('GENSVC_DATADIR'))
-GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
+
 GENSVC_MISEQ_DATADIR = as_path(os.getenv('GENSVC_MISEQ_DATADIR'))
+GENSVC_NEXTSEQ_DATADIR = as_path(os.getenv('GENSVC_NEXTSEQ_DATADIR'))
+GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
 
 GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
+
 
 def run_list(args):
     for d in args.dirs:
@@ -141,7 +144,7 @@ def get_parser():
     parse_reports.add_argument(
         'dirs',  
         type=pathlib.Path,
-        default=[GENSVC_MISEQ_DATADIR,GENSVC_NOVASEQ_DATADIR],
+        default=[GENSVC_NOVASEQ_DATADIR],
         nargs='*',
         help='One or more directories to list.'
     )
