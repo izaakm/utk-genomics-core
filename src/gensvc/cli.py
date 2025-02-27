@@ -39,7 +39,7 @@ def run_list(args):
 
 
 def run_bcl2fastq(args):
-    print(f'GENSVC_PROCDATA={GENSVC_PROCDATA}')
+    print(f'GENSVC_PROCDATA={config.GENSVC_PROCDATA}')
     seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
     # print(seqrun.info)
     # seqrun.init_procdir()
@@ -49,7 +49,7 @@ def run_bcl2fastq(args):
     command = bcl2fastq.bcl2fastq(
         runfolder_dir=seqrun.realpath,
         sample_sheet=args.sample_sheet or seqrun.path_to_samplesheet,
-        output_dir=args.output_dir or bcl2fastq.init_output_dir(GENSVC_PROCDATA, seqrun.runid),
+        output_dir=args.output_dir or bcl2fastq.init_output_dir(config.GENSVC_PROCDATA, seqrun.runid),
         processing_threads=args.processing_threads
     )
     if args.sbatch:
@@ -147,7 +147,7 @@ def get_parser():
     parse_reports.add_argument(
         'dirs',  
         type=pathlib.Path,
-        default=[GENSVC_NOVASEQ_DATADIR],
+        default=[config.GENSVC_NOVASEQ_DATADIR],
         nargs='*',
         help='One or more directories to list.'
     )
