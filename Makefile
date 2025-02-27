@@ -1,6 +1,9 @@
-.PHONY: all clean
+.PHONY: all tags clean
 
-all:
+all: tags
+
+tags:
+	ctags -R src
 
 clean:
 	rm -rf bin/
