@@ -15,20 +15,21 @@ import tempfile
 from gensvc.wrappers import bcl2fastq, slurm
 from gensvc.core_facility import reports, transfer
 from gensvc.data import sequencing_run
+from gensvc.misc import config, utils
 
-def as_path(obj):
-    try:
-        return pathlib.Path(obj)
-    except:
-        return None
+# def as_path(obj):
+#     try:
+#         return pathlib.Path(obj)
+#     except:
+#         return None
 
-GENSVC_DATADIR = as_path(os.getenv('GENSVC_DATADIR'))
-
-GENSVC_MISEQ_DATADIR = as_path(os.getenv('GENSVC_MISEQ_DATADIR'))
-GENSVC_NEXTSEQ_DATADIR = as_path(os.getenv('GENSVC_NEXTSEQ_DATADIR'))
-GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
-
-GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
+# GENSVC_DATADIR = as_path(os.getenv('GENSVC_DATADIR'))
+#
+# GENSVC_MISEQ_DATADIR = as_path(os.getenv('GENSVC_MISEQ_DATADIR'))
+# GENSVC_NEXTSEQ_DATADIR = as_path(os.getenv('GENSVC_NEXTSEQ_DATADIR'))
+# GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
+#
+# GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
 
 
 def run_list(args):
