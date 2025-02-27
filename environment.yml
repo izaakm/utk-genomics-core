@@ -1,4 +1,4 @@
-name: gensvc
+name: utk-genomics-core
 channels:
   - conda-forge
   - bioconda
