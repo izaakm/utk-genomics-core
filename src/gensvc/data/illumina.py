@@ -140,34 +140,6 @@ def looks_like_samplesheet(path):
         # print('Missing "Header" or "Reads"')
         return False
 
-# def find_samplesheet(dirname):
-#     '''
-#     Search a directory for an Illumina Sample Sheet file.
-#
-#     [TODO] Sort multiple sample sheets by modified time.
-#     '''
-#     canonical = []
-#     real = []
-#     symlinks = []
-#
-#     # print(dirname)
-#     if not isinstance(dirname, pathlib.Path):
-#         dirname = pathlib.Path(dirname)
-#
-#     # print(dirname)
-#     for path in dirname.iterdir():
-#         # print(path)
-#         if path.is_file() and path.suffix == '.csv':
-#             if looks_like_samplesheet(path):
-#                 path = path.absolute()
-#                 if path.name == 'SampleSheet.csv':
-#                     canonical.append(path)
-#                 elif path.is_symlink():
-#                     symlinks.append(path)
-#                 else:
-#                     real.append(path)
-#     return canonical + real + symlinks
-
 
 class SampleSheet:
     def __init__(self, path):
@@ -213,24 +185,36 @@ class SampleSheet:
 
     @property
     def Header(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
         if not self._header:
             self._header = parse_header(self.content.get('Header', []))
         return self._header
 
     @property
     def Reads(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
         if not self._reads:
             self._reads = parse_reads(self.content.get('Reads', []))
         return self._reads
 
     @property
     def Settings(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
         if not self._settings:
             self._settings = parse_settings(self.content.get('Settings', []))
         return self._settings
 
     @property
     def Data(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
         if not self._data:
             self._data = parse_data(self.content.get('Data', []))
         return self._data
