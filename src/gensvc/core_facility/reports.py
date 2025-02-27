@@ -51,7 +51,7 @@ def list(dirname, long=False, sep='|'):
         elif long:
             try:
                 illuminadata = sequencing_run.IlluminaSequencingData(path)
-                illuminadata.find_samplesheet()
+                illuminadata.find_samplesheet()  # 'find_samplesheet' should be *not* be a method for illumina data; find the samplesheet and then pass it to the IlluminaSequencingData constructor.
                 # print(illuminadata.path_to_samplesheet)
                 # print(illuminadata.samplesheet.path)
                 # --- 8<
