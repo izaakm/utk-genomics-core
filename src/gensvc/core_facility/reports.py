@@ -8,6 +8,35 @@ from gensvc.misc import utils
 from gensvc.data import illumina
 
 
+def find_samplesheet(dirname):
+    '''
+    Search a directory for an Illumina Sample Sheet file.
+
+    [TODO] Sort multiple sample sheets by modified time.
+    '''
+    canonical = []
+    real = []
+    symlinks = []
+
+    # print(dirname)
+    if not isinstance(dirname, pathlib.Path):
+        dirname = pathlib.Path(dirname)
+
+    # print(dirname)
+    for path in dirname.iterdir():
+        # print(path)
+        if path.is_file() and path.suffix == '.csv':
+            if looks_like_samplesheet(path):
+                path = path.absolute()
+                if path.name == 'SampleSheet.csv':
+                    canonical.append(path)
+                elif path.is_symlink():
+                    symlinks.append(path)
+                else:
+                    real.append(path)
+    return canonical + real + symlinks
+
+
 def find_seq_runs(dirname):
     if not isinstance(dirname, pathlib.Path):
         dirname = pathlib.Path(dirname)
@@ -53,7 +82,8 @@ def list(dirname, long=False, sep='|'):
         elif long:
             try:
                 illuminadata = sequencing_run.IlluminaSequencingData(path)
-                illuminadata.find_samplesheet()  # 'find_samplesheet' should be *not* be a method for illumina data; find the samplesheet and then pass it to the IlluminaSequencingData constructor.
+                # illuminadata.find_samplesheet()  # 'find_samplesheet' should be *not* be a method for illumina data; find the samplesheet and then pass it to the IlluminaSequencingData constructor.
+
                 # print(illuminadata.path_to_samplesheet)
                 # print(illuminadata.samplesheet.path)
                 # --- 8<
