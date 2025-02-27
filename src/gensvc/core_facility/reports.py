@@ -2,7 +2,9 @@ import re
 import pathlib
 import sys
 
-from gensvc.misc import sequencing_run, utils
+# from gensvc.misc import sequencing_run, utils
+from gensvc.data import sequencing_run
+from gensvc.misc import utils
 
 regex_runid = re.compile(r'[^\/]*\d{6}[^\/]*')
 
