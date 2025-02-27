@@ -8,6 +8,43 @@ from gensvc.misc import utils
 from gensvc.data import illumina
 
 
+def find(runid, datadir):
+    if not datadir.is_dir():
+        raise ValueError('not a directory: "{datadir}"')
+    for item in datadir.glob('*'):
+        if item.name == runid:
+            return item
+
+
+def find_rundir(runid, miseqdir=GENSVC_MISEQDATA, novaseqdir=GENSVC_NOVASEQDATA):
+    rundir = find(runid, miseqdir) or find(runid, novaseqdir)
+    return rundir
+
+
+def find_procdir(runid, procdir=GENSVC_PROCDATA):
+    rundir = find(runid, procdir)
+    if rundir and rundir.is_dir():
+        contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
+        return contents[-1]
+    else:
+        return None
+
+
+def new_procdir(runid, procdir=GENSVC_PROCDATA):
+    if not procdir or not procdir.is_dir():
+        raise ValueError(f'not a directory: "{procdir}"')
+    return procdir / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
+
+
+def md5sum(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+    
+
+
 def find_samplesheet(dirname):
     '''
     Search a directory for an Illumina Sample Sheet file.
