@@ -5,8 +5,8 @@ import sys
 # from gensvc.misc import sequencing_run, utils
 from gensvc.data import sequencing_run
 from gensvc.misc import utils
+from gensvc.data import illumina
 
-regex_runid = re.compile(r'[^\/]*\d{6}[^\/]*')
 
 def find_seq_runs(dirname):
     if not isinstance(dirname, pathlib.Path):
@@ -15,7 +15,7 @@ def find_seq_runs(dirname):
     seq_runs = []
     for path in dirname.iterdir():
         try:
-            runid = regex_runid.search(str(path)).group(0)
+            runid = illumina.regex_runid.search(str(path)).group(0)
             seq_runs.append((runid, path))
         except:
             pass
