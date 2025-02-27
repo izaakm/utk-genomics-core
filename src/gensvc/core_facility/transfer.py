@@ -1,5 +1,11 @@
 import shutil
+
 from gensvc.misc import utils
+from gensvc.data import base
+
+class TransferData(base.ProcessedData):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 def copy_data(src, dst, dry_run=False):
     if dry_run:
