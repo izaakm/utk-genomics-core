@@ -273,4 +273,15 @@ def bcl2fastq(runfolder_dir=None, sample_sheet=None, output_dir=None, processing
 
     return '\n'.join(cmd)
 
+class BCL2FastqData(ProcessedData):
+    def __init__(self, rundir, runid=None, runfolder_dir=None, sample_sheet=None, output_dir=None, processing_threads=None, **kwargs):
+        self._rundir = rundir
+        self._runid = runid
+        self._runfolder_dir = runfolder_dir
+        self._sample_sheet_orig = sample_sheet
+        self._sample_sheet_copy = None
+        self._output_dir = output_dir
+        self._processing_threads = processing_threads
+        super().__init__(**kwargs)
+
 # END
