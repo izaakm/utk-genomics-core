@@ -12,7 +12,9 @@ import sys
 import os
 import tempfile
 
-from gensvc.misc import bcl2fastq, reports, slurm, sequencing_run, transfer
+from gensvc.wrappers import bcl2fastq, slurm
+from gensvc.core_facility import reports, transfer
+from gensvc.data import sequencing_run
 
 def as_path(obj):
     try:
