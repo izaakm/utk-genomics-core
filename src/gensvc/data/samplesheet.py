@@ -138,33 +138,33 @@ def looks_like_samplesheet(path):
         # print('Missing "Header" or "Reads"')
         return False
 
-def find_samplesheet(dirname):
-    '''
-    Search a directory for an Illumina Sample Sheet file.
-
-    [TODO] Sort multiple sample sheets by modified time.
-    '''
-    canonical = []
-    real = []
-    symlinks = []
-
-    # print(dirname)
-    if not isinstance(dirname, pathlib.Path):
-        dirname = pathlib.Path(dirname)
-
-    # print(dirname)
-    for path in dirname.iterdir():
-        # print(path)
-        if path.is_file() and path.suffix == '.csv':
-            if looks_like_samplesheet(path):
-                path = path.absolute()
-                if path.name == 'SampleSheet.csv':
-                    canonical.append(path)
-                elif path.is_symlink():
-                    symlinks.append(path)
-                else:
-                    real.append(path)
-    return canonical + real + symlinks
+# def find_samplesheet(dirname):
+#     '''
+#     Search a directory for an Illumina Sample Sheet file.
+#
+#     [TODO] Sort multiple sample sheets by modified time.
+#     '''
+#     canonical = []
+#     real = []
+#     symlinks = []
+#
+#     # print(dirname)
+#     if not isinstance(dirname, pathlib.Path):
+#         dirname = pathlib.Path(dirname)
+#
+#     # print(dirname)
+#     for path in dirname.iterdir():
+#         # print(path)
+#         if path.is_file() and path.suffix == '.csv':
+#             if looks_like_samplesheet(path):
+#                 path = path.absolute()
+#                 if path.name == 'SampleSheet.csv':
+#                     canonical.append(path)
+#                 elif path.is_symlink():
+#                     symlinks.append(path)
+#                 else:
+#                     real.append(path)
+#     return canonical + real + symlinks
 
 
 class SampleSheet:
