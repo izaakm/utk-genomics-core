@@ -72,10 +72,16 @@ dorsync() {
 
 run echo "logging to ${logfile}"
 
-dorsync "${processed_data}" "${local_processed_data}" &
-dorsync "${nextseq_data}" "${local_nextseq_data}" &
-dorsync "${novaseq_data}" "${local_novaseq_data}" &
-dorsync "${iseq_data}" "${local_iseq_data}" &
-wait
+# # Cannot do multiple rsyncs over ssh in parallel bc password.
+# dorsync "${processed_data}" "${local_processed_data}" &
+# dorsync "${nextseq_data}" "${local_nextseq_data}" &
+# dorsync "${novaseq_data}" "${local_novaseq_data}" &
+# dorsync "${iseq_data}" "${local_iseq_data}" &
+# wait
+
+# dorsync "${processed_data}" "${local_processed_data}"
+# dorsync "${nextseq_data}" "${local_nextseq_data}"
+dorsync "${novaseq_data}" "${local_novaseq_data}"
+# dorsync "${iseq_data}" "${local_iseq_data}"
 
 exit 0
