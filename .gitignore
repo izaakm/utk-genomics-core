@@ -1,3 +1,5 @@
+.*
+!.gitignore
 *.out
 *.svg
 .DS_Store
