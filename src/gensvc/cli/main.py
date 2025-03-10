@@ -14,7 +14,6 @@ import tempfile
 
 from gensvc.wrappers import bcl2fastq, slurm
 from gensvc.core_facility import reports, transfer
-from gensvc.data import sequencing_run
 from gensvc.misc import config, utils
 
 # def as_path(obj):
