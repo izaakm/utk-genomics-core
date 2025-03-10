@@ -90,9 +90,11 @@ def find_seq_runs(dirname):
 
 def list(dirname, long=False, sep='|'):
     short = not long
-    if isinstance(dirname, str):
-        dirname = pathlib.Path(dirname)
+    # if isinstance(dirname, str):
+    #     dirname = pathlib.Path(dirname)
+    # print(dirname)
     for path in dirname.iterdir():
+        # print(path)
         realpath = path.resolve()
         runid = utils.get_runid(realpath)
         if not runid:
