@@ -33,7 +33,8 @@ from gensvc.misc import config, utils
 
 def run_list(args):
     for d in args.path:
-        reports.list(d, long=args.long)
+        if d and os.path.isdir(d):
+            reports.list(pathlib.Path(d), long=args.long)
     return 0
 
 
@@ -145,7 +146,6 @@ def get_parser():
 
     parse_reports.add_argument(
         'path',  
-        type=pathlib.Path,
         default=[config.GENSVC_NOVASEQ_DATADIR],
         nargs='*',
         help='The path(s) to the directory containing the sequencing runs.'
@@ -267,6 +267,9 @@ def get_parser():
 def main():
 
     args = get_parser().parse_args()
+
+    print(args)
+
     if args.verbose:
         print(args)
 
