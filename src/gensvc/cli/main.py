@@ -273,8 +273,3 @@ def main():
     res = args.func(args)
 
     return res
-
-
-if __name__ == '__main__':
-    res = main()
-    sys.exit(res)
