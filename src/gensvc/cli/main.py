@@ -32,7 +32,7 @@ from gensvc.misc import config, utils
 
 
 def run_list(args):
-    for d in args.dirs:
+    for d in args.path:
         reports.list(d, long=args.long)
     return 0
 
@@ -144,11 +144,11 @@ def get_parser():
     )
 
     parse_reports.add_argument(
-        'dirs',  
+        'path',  
         type=pathlib.Path,
         default=[config.GENSVC_NOVASEQ_DATADIR],
         nargs='*',
-        help='One or more directories to list.'
+        help='The path(s) to the directory containing the sequencing runs.'
     )
 
     parse_reports.add_argument(
