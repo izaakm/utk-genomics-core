@@ -3,7 +3,7 @@ import pathlib
 import sys
 
 # from gensvc.misc import sequencing_run, utils
-from gensvc.data import sequencing_run
+# from gensvc.data import sequencing_run
 from gensvc.misc import utils
 from gensvc.data import illumina
 
@@ -16,12 +16,12 @@ def find(runid, datadir):
             return item
 
 
-def find_rundir(runid, miseqdir=GENSVC_MISEQDATA, novaseqdir=GENSVC_NOVASEQDATA):
+def find_rundir(runid, miseqdir=None, novaseqdir=None):
     rundir = find(runid, miseqdir) or find(runid, novaseqdir)
     return rundir
 
 
-def find_procdir(runid, procdir=GENSVC_PROCDATA):
+def find_procdir(runid, procdir=None):
     rundir = find(runid, procdir)
     if rundir and rundir.is_dir():
         contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
@@ -30,7 +30,7 @@ def find_procdir(runid, procdir=GENSVC_PROCDATA):
         return None
 
 
-def new_procdir(runid, procdir=GENSVC_PROCDATA):
+def new_procdir(runid, procdir=None):
     if not procdir or not procdir.is_dir():
         raise ValueError(f'not a directory: "{procdir}"')
     return procdir / runid / datetime.now().strftime('%Y%m%dT%H%M%S')
