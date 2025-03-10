@@ -146,7 +146,11 @@ def get_parser():
 
     parse_reports.add_argument(
         'path',  
-        default=[config.GENSVC_NOVASEQ_DATADIR],
+        default=[
+            config.GENSVC_ISEQ_DATADIR,
+            config.GENSVC_NEXTSEQ_DATADIR,
+            config.GENSVC_NOVASEQ_DATADIR
+        ],
         nargs='*',
         help='The path(s) to the directory containing the sequencing runs.'
     )
