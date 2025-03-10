@@ -40,6 +40,7 @@ import pandas as pd
 import tempfile
 
 from datetime import datetime
+from gensvc.data.base import ProcessedData
 
 # Third party
 # from sample_sheet import SampleSheet
