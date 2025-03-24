@@ -310,19 +310,26 @@ class BaseSampleSheet:
 
 
 class SampleSheetv1(BaseSampleSheet):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class SampleSheetv2(BaseSampleSheet):
+    def __init__(self, *args, **kwargs):
+        self._bclconvert_settings = None
+        self._bclconvert_data = None
+        self._cloud_settings = None
+        self._cloud_data = None
+        super().__init__(*args, **kwargs)
 
     @property
     def BCLConvert_Settings(self):
         '''
         [TODO] Consider moving fxn into class as method.
         '''
-        if not self._settings:
-            self._settings = parse_settings(self.content.get('BCLConvert_Settings', []))
-        return self._settings
+        if not self._bclconvert_settings:
+            self._bclconvert_settings = parse_settings(self.content.get('BCLConvert_Settings', []))
+        return self._bclconvert_settings
 
     Settings = BCLConvert_Settings
 
@@ -331,18 +338,18 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         [TODO] Consider moving fxn into class as method.
         '''
-        if not self._settings:
-            self._settings = parse_settings(self.content.get('Cloud_Settings', []))
-        return self._settings
+        if not self._cloud_settings:
+            self._cloud_settings = parse_settings(self.content.get('Cloud_Settings', []))
+        return self._cloud_settings
 
     @property
     def BCLConvert_Data(self):
         '''
         [TODO] Consider moving fxn into class as method.
         '''
-        if not self._data:
-            self._data = parse_data(self.content.get('BCLConvert_Data', []))
-        return self._data
+        if not self._bclconvert_data:
+            self._bclconvert_data = parse_data(self.content.get('BCLConvert_Data', []))
+        return self._bclconvert_data
 
     Data = BCLConvert_Data
     
@@ -351,9 +358,9 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         [TODO] Consider moving fxn into class as method.
         '''
-        if not self._data:
-            self._data = parse_data(self.content.get('Cloud_Data', []))
-        return self._data
+        if not self._cloud_data:
+            self._cloud_data = parse_data(self.content.get('Cloud_Data', []))
+        return self._cloud_data
     
     samples = Data
 
