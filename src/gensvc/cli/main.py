@@ -32,9 +32,11 @@ from gensvc.misc import config, utils
 
 
 def run_list(args):
+    report = []
     for d in args.path:
         if d and os.path.isdir(d):
-            reports.list(pathlib.Path(d), long=args.long)
+            report.extend(reports.list(pathlib.Path(d), long=args.long))
+    print('\n'.join(report))
     return 0
 
 
