@@ -202,7 +202,12 @@ def samples_to_dataframe(samplesheet):
 class BaseSampleSheet:
     def __init__(self, path, content=None):
         self._path = path
-        self._content = content
+        if content is None:
+            self._content = get_content(path)
+        elif isinstance(content, dict):
+            self._content = content
+        else:
+            raise ValueError(f'`content` must be a dict or None, you gave "{type(content)}"')
         self._header = None
         self._reads = None
         self._settings = None
@@ -245,8 +250,6 @@ class BaseSampleSheet:
         Helper for the other properties. Read the data and parse it into
         sections, but don't actually parse the sections yet.
         '''
-        if not self._content:
-            self._content = read_samplesheet(self.path)
         return self._content
 
     @property
