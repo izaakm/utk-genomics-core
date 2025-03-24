@@ -3,6 +3,7 @@
 *.out
 *.svg
 
+/bin
 /logs
 /notebooks
 
