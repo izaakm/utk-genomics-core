@@ -1,11 +1,14 @@
 import re
 import pathlib
 import sys
+import warnings
 
 # from gensvc.misc import sequencing_run, utils
 # from gensvc.data import sequencing_run
+
 from gensvc.misc import utils
 from gensvc.data import illumina
+from gensvc.data.illumina import IlluminaSequencingData
 
 
 def find(runid, datadir):
@@ -45,15 +48,17 @@ def md5sum(fname):
     
 
 
-def find_samplesheet(dirname):
+def find_samplesheets(dirname):
     '''
     Search a directory for an Illumina Sample Sheet file.
 
     [TODO] Sort multiple sample sheets by modified time.
     '''
-    canonical = []
-    real = []
-    symlinks = []
+    # canonical = []
+    # real = []
+    # symlinks = []
+
+    found = []
 
     # print(dirname)
     if not isinstance(dirname, pathlib.Path):
@@ -63,15 +68,9 @@ def find_samplesheet(dirname):
     for path in dirname.iterdir():
         # print(path)
         if path.is_file() and path.suffix == '.csv':
-            if looks_like_samplesheet(path):
-                path = path.absolute()
-                if path.name == 'SampleSheet.csv':
-                    canonical.append(path)
-                elif path.is_symlink():
-                    symlinks.append(path)
-                else:
-                    real.append(path)
-    return canonical + real + symlinks
+            if illumina.looks_like_samplesheet(path):
+                found.append(path.resolve())
+    return sorted(set(found))
 
 
 def find_seq_runs(dirname):
@@ -88,61 +87,58 @@ def find_seq_runs(dirname):
 
     return sorted(seq_runs, key=lambda item: item[-1])
 
+
 def list(dirname, long=False, sep='|'):
+    lines = []
     short = not long
     # if isinstance(dirname, str):
     #     dirname = pathlib.Path(dirname)
     # print(dirname)
     for path in dirname.iterdir():
         # print(path)
-        realpath = path.resolve()
-        runid = utils.get_runid(realpath)
+        rundir = path.resolve()
+        runid = utils.get_runid(rundir)
         if not runid:
             continue
 
-        if 'MiSeq' in str(realpath):
-            instrument = 'MiSeq'
-        else:
-            instrument = 'NovaSeq'
-
-        # seqrun = sequencing_run.IlluminaSequencingData(
-        #     runid=runid,
-        #     rundir=path,
-        #     instrument=instrument
-        # )
+        seqrun = IlluminaSequencingData(rundir)
         # print(seqrun)
 
         if short:
-            # if realpath == path:
-            #     print(instrument, runid, path)
-            # else:
-            #     print(instrument, runid, path, '->', realpath)
-            print(sep.join([instrument, runid, str(path)]))
+            lines.append(
+                sep.join(
+                    [seqrun.instrument, seqrun.runid, str(seqrun.path)]
+                )
+            )
         elif long:
-            try:
-                illuminadata = sequencing_run.IlluminaSequencingData(path)
-                # illuminadata.find_samplesheet()  # 'find_samplesheet' should be *not* be a method for illumina data; find the samplesheet and then pass it to the IlluminaSequencingData constructor.
+            pathlist = find_samplesheets(rundir)
+            if len(pathlist) > 1:
+                warnings.warn(f'Multiple sample sheets found: "{pathlist}"')
+                for ss in pathlist:
+                    if ss.name == 'SampleSheet.csv':
+                        seqrun.path_to_samplesheet = ss
+                        break
+                else:
+                    # Continue to the next sequencing run.
+                    warnings.warn(f'Unable to disambiguate sample sheets, skipping {rundir}')
+                    continue
+            else:
+                seqrun.path_to_samplesheet = pathlist[0]
 
-                # print(illuminadata.path_to_samplesheet)
-                # print(illuminadata.samplesheet.path)
-                # --- 8<
-                # try:
-                #     for project in illuminadata.sample_project:
-                #         print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
-                # except:
-                #     print(f'{instrument:<8} {runid:<35} {path}')
-                # --- >8
-                # print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
-                # print(sep.join([illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project]))
-                for project in illuminadata.projects:
-                    # print(sep.join([illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project]))
-                    print(
-                        sep.join([
-                            str(i) for i in (illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project)
-                        ])
-                    )
-            except Exception as e:
-                print(f'[ERROR] Cannot processes run "{path}": {e}', file=sys.stderr)
-    return None
+            # print(seqrun)
+            # print(seqrun.path_to_samplesheet)
+            print(seqrun.samplesheet.sections)
+            # print(seqrun.samplesheet.FileFormatVersion, seqrun.samplesheet.version)
+            # print(illuminadata.samplesheet.path)
+            # --- 8<
+            # try:
+            #     for project in illuminadata.sample_project:
+            #         print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
+            # except:
+            #     print(f'{instrument:<8} {runid:<35} {path}')
+            # --- >8
+            # print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
+            # print(sep.join([illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project]))
+    return lines
 
 # END
