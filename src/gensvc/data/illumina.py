@@ -121,13 +121,13 @@ def parse_data(list_of_lines, csv_reader=csv_read):
     return data
 
 
-def read_samplesheet(path, version='infer'):
+def get_content(path):
     # header = re.compile(r'^\[\s*Header\s*]')
     section = re.compile(r'^\[\s*(\w+)\s*]')
-    
     content = dict()
     lines = []
     key = None
+
     with open(path) as f:
         for line in f:
             sec = section.match(line)
@@ -144,7 +144,13 @@ def read_samplesheet(path, version='infer'):
         else:
             if key and lines:
                 content[key] = lines
-    
+
+    return content
+
+
+def read_samplesheet(path, version='infer'):
+    content = get_content(path)
+
     if version == 'raw':
         return content
 
