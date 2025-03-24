@@ -37,7 +37,7 @@ _instrument_id ={
 
 _instruments = sorted(_instrument_id.values())
 
-regex_runid = re.compile(r'[^\/]*\d{6}[^\/]*')
+regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')
 
 
 def csv_read(content):
@@ -121,11 +121,11 @@ def parse_data(list_of_lines, csv_reader=csv_read):
     return data
 
 
-def read_samplesheet(path):
+def read_samplesheet(path, version='infer'):
     # header = re.compile(r'^\[\s*Header\s*]')
     section = re.compile(r'^\[\s*(\w+)\s*]')
     
-    sample_sheet = dict()
+    content = dict()
     lines = []
     key = None
     with open(path) as f:
@@ -135,7 +135,7 @@ def read_samplesheet(path):
                 # New section
                 # print(sec.group(0), sec.group(1))
                 if key and lines:
-                    sample_sheet[key] = lines
+                    content[key] = lines
 
                 key = sec.group(1)
                 lines = []
@@ -143,9 +143,23 @@ def read_samplesheet(path):
                 lines.append(line.strip())
         else:
             if key and lines:
-                sample_sheet[key] = lines
+                content[key] = lines
     
-    return sample_sheet
+    if version == 'raw':
+        return content
+
+    if version == 'infer':
+        if 'BCLConvert_Settings' in content:
+            version = 2
+        else:
+            version = 1
+
+    if version == 1:
+        return SampleSheetv1(path=path, content=content)
+    elif version == 2:
+        return SampleSheetv2(path=path, content=content)
+    else:
+        raise ValueError(f'`version` must be `1` or `2`, you gave "{version}"')
 
 
 def looks_like_samplesheet(path):
@@ -162,7 +176,7 @@ def looks_like_samplesheet(path):
         return False
 
     try:
-        sample_sheet = read_samplesheet(path)
+        sample_sheet = read_samplesheet(path, version='raw')
     except:
         # print('Cannot read file.')
         return False
@@ -179,17 +193,29 @@ def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
 
-class SampleSheet:
-    def __init__(self, path):
+class BaseSampleSheet:
+    def __init__(self, path, content=None):
         self._path = path
-        self._content = None
+        self._content = content
         self._header = None
         self._reads = None
         self._settings = None
         self._data = None
+        self._sample_project = None
+        self._is_split_lane = None
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self._path}")'
+
+    @property
+    def FileFormatVersion(self):
+        '''
+        The `FileFormatVersion` key is included in the v2 sample sheet but not
+        v1. Therefore, if the key is not present, default to `1`.
+        '''
+        return int(self.Header.get('FileFormatVersion', 1))
+
+    version = FileFormatVersion
 
     @property
     def path(self):
@@ -260,8 +286,67 @@ class SampleSheet:
     samples = Data
 
     @property
-    def projects(self):
-        return sorted(set([row.get('Sample_Project') for row in self.Data]))
+    def sample_project(self):
+        if self._sample_project is None:
+            self._sample_project = sorted(set(self.samples['Sample_Project']))
+        return self._sample_project
+
+    projects = sample_project
+
+    @property
+    def is_split_lane(self):
+        if self._is_split_lane is None:
+            self._is_split_lane = len(self.sample_project) > 1
+        return self._is_split_lane
+
+
+class SampleSheetv1(BaseSampleSheet):
+    pass
+
+
+class SampleSheetv2(BaseSampleSheet):
+
+    @property
+    def BCLConvert_Settings(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._settings:
+            self._settings = parse_settings(self.content.get('BCLConvert_Settings', []))
+        return self._settings
+
+    Settings = BCLConvert_Settings
+
+    @property
+    def Cloud_Settings(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._settings:
+            self._settings = parse_settings(self.content.get('Cloud_Settings', []))
+        return self._settings
+
+    @property
+    def BCLConvert_Data(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._data:
+            self._data = parse_data(self.content.get('BCLConvert_Data', []))
+        return self._data
+
+    Data = BCLConvert_Data
+    
+    @property
+    def Cloud_Data(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._data:
+            self._data = parse_data(self.content.get('Cloud_Data', []))
+        return self._data
+    
+    samples = Data
 
 
 class IlluminaSequencingData(base.RawData):
@@ -277,6 +362,7 @@ class IlluminaSequencingData(base.RawData):
         #     self._runid = utils.get_runid(self._rundir)
         # else:
         #     self._runid = runid
+
         self._runid = self._rundir.name
 
         if instrument is None:
@@ -320,7 +406,7 @@ class IlluminaSequencingData(base.RawData):
     @property
     def samplesheet(self):
         if not self._samplesheet:
-            self.samplesheet = ss.SampleSheet(self.path_to_samplesheet)
+            self.samplesheet = read_samplesheet(self.path_to_samplesheet, version='infer')
         return self._samplesheet
 
     @samplesheet.setter
@@ -330,41 +416,17 @@ class IlluminaSequencingData(base.RawData):
         self._samplesheet = value
 
     def find_samplesheet(self):
-        found_items = ss.find_samplesheet(self.rundir)
-        if len(found_items) == 0:
-            raise ValueError(f'No sample sheet found: {self.path}')
-        else:
-            self.path_to_samplesheet = found_items[0]
-            if len(found_items) > 1:
-                print(f'[WARNING] Found {len(found_items)} possible sample sheets:', file=sys.stderr)
-                for item in found_items:
-                    print(item, file=sys.stderr)
+        # found_items = ss.find_samplesheet(self.rundir)
+        # if len(found_items) == 0:
+        #     raise ValueError(f'No sample sheet found: {self.path}')
+        # else:
+        #     self.path_to_samplesheet = found_items[0]
+        #     if len(found_items) > 1:
+        #         print(f'[WARNING] Found {len(found_items)} possible sample sheets:', file=sys.stderr)
+        #         for item in found_items:
+        #             print(item, file=sys.stderr)
+        pass
 
-    @property
-    def samples(self):
-        if self.samplesheet is None:
-            raise ValueError('samplesheet is not set')
-        elif self._samples is None:
-            self._samples = samples_to_dataframe(self.samplesheet)
-        return self._samples
-
-    @property
-    def sample_project(self):
-        print('[WARNING] the "sample_project" property is DEPRECATED')
-        if self._sample_project is None:
-            self._sample_project = sorted(set(self.samples['Sample_Project']))
-        return self._sample_project
-
-    @property
-    def projects(self):
-        return self.samplesheet.projects
-
-    @property
-    def is_split_lane(self):
-        if self._is_split_lane is None:
-            self._is_split_lane = len(self.sample_project) > 1
-        return self._is_split_lane
-    
     def ls(self):
         for path in sorted(self.path.iterdir()):
             print(path)
