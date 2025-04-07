@@ -88,13 +88,17 @@ def find_seq_runs(dirname):
     return sorted(seq_runs, key=lambda item: item[-1])
 
 
-def list(dirname, long=False, sep='|'):
+def list(dirpath, long=False, sep='\t'):
+    '''
+    List sequencing runs in `dirpath`.
+
+    long : boolean
+        Print more stuff about each run.
+    '''
     lines = []
     short = not long
-    # if isinstance(dirname, str):
-    #     dirname = pathlib.Path(dirname)
-    # print(dirname)
-    for path in dirname.iterdir():
+
+    for path in dirpath.iterdir():
         # print(path)
         rundir = path.resolve()
         runid = utils.get_runid(rundir)
@@ -111,6 +115,11 @@ def list(dirname, long=False, sep='|'):
                 )
             )
         elif long:
+            row = {
+                'instrument': seqrun.instrument,
+                'runid': seqrun.runid,
+                'path': seqrun.path
+            }
             pathlist = find_samplesheets(rundir)
             if len(pathlist) > 1:
                 warnings.warn(f'Multiple sample sheets found: "{pathlist}"')
@@ -127,7 +136,12 @@ def list(dirname, long=False, sep='|'):
 
             # print(seqrun)
             # print(seqrun.path_to_samplesheet)
-            print(seqrun.samplesheet.sections)
+            # print(seqrun.samplesheet.sections)
+            # print(seqrun.samplesheet.Header)
+            row['Experiment'] = seqrun.samplesheet.Header['Experiment Name']
+            row['Project'] = seqrun.samplesheet.sample_project
+            print(row)
+
             # print(seqrun.samplesheet.FileFormatVersion, seqrun.samplesheet.version)
             # print(illuminadata.samplesheet.path)
             # --- 8<
