@@ -11,6 +11,8 @@ import argparse
 import sys
 import os
 import tempfile
+import logging
+import pandas as pd
 
 from gensvc.wrappers import bcl2fastq, slurm
 from gensvc.core_facility import reports, transfer
@@ -31,17 +33,50 @@ from gensvc.misc import config, utils
 # GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
 
 
+logger = logging.getLogger(__name__)
+
 def run_list(args):
-    report = []
+    records = []
     for d in args.path:
         if d and os.path.isdir(d):
-            report.extend(reports.list(pathlib.Path(d), long=args.long))
-    print('\n'.join(report))
+            records.extend(reports.list(pathlib.Path(d), long=args.long))
+    report = pd.DataFrame(records)
+    if 'project' in report.columns:
+        report = report.explode('project')
+
+    # --- 8< ---
+    # I DON'T WHY THIS STUPID ASS PANDAS "FORMATTERS" BULLSHIT IS SO FUCKING COMPLICATED.
+    # fmt_left_align = '{{:<{width}}}'
+    # header_justify = 'center'
+    # # formatters = [lambda x: fmt_left_align.format(x) for key in report.columns]
+    # col_space = []
+    # formatters = []
+    # for col in report.columns:
+    #     width = report[col].apply(lambda x: len(str(x)) + 2).max()
+    #     col_space.append(width)
+    #
+    #     formatter = fmt_left_align.format(width=width)
+    #     formatters.append(
+    #         lambda x: formatter.format(x)
+    #     )
+    #     print(formatter)
+    # print(formatters)
+    # if 'path' in report.columns and 'experiment' in report.columns:
+    #     report = report.sort_values(['path', 'experiment']).to_string(index=False, justify=header_justify, col_space=col_space, formatters=formatters)
+    # else:
+    #     report = report.sort_values(['path']).to_string(index=False, justify=header_justify, col_space=col_space, formatters=formatters)
+    # print(report)
+    # --- >8 ---
+    if 'path' in report.columns and 'experiment' in report.columns:
+        report = report.sort_values(['path', 'experiment']).to_csv(sep=args.sep, index=False)
+    else:
+        report = report.sort_values(['path']).to_csv(sep=args.sep, index=False)
+    print(report)
     return 0
 
 
 def run_bcl2fastq(args):
-    print(f'GENSVC_PROCDATA={config.GENSVC_PROCDATA}')
+    logger.debug(f'GENSVC_PROCDATA={config.GENSVC_PROCDATA}')
     seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
     # print(seqrun.info)
     # seqrun.init_procdir()
@@ -70,7 +105,7 @@ def extract_bcl2fastq_stats(args):
 
 def run_setup_transfer(args):
     procdata = sequencing_run.ProcessedData(path=args.dirname)
-    print(procdata)
+    logger.debug(procdata)
 
     transfer.setup_transfer(
         procdir=procdata.path,
@@ -162,7 +197,13 @@ def get_parser():
         action='store_true',
         help='List more stuff.'
     )
-
+    parse_reports.add_argument(
+        '-s', '--sep',
+        action='store',
+        default='\t',
+        type=str,
+        help='Column separator.'
+    )
     parse_reports.set_defaults(func=run_list)
 
     # Convert BCL files to FASTQ.
@@ -273,11 +314,18 @@ def get_parser():
 def main():
 
     args = get_parser().parse_args()
+    # print(args)
 
-    print(args)
+    # Initialize logging.
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(message)s',
+    )
 
-    if args.verbose:
-        print(args)
+    # Set up logging.
+
+    logger.info('*** Logger info is working ***')
+    logger.debug('*** Logger debug is working ***')
 
     res = args.func(args)
 
