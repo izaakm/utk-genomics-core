@@ -21,6 +21,7 @@ import pathlib
 import re
 import sys
 import warnings
+import logging
 
 from io import StringIO
 from datetime import datetime
@@ -39,91 +40,151 @@ _instruments = sorted(_instrument_id.values())
 
 regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')
 
+logger = logging.getLogger(__name__)
 
-def csv_read(content):
+
+# def csv_read(content):
+#     '''
+#     This is the preferred function for reading CSV data. This function and
+#     'csv_split' are similar in performance on small data sets, but 'csv_split'
+#     is really just included for comparison.
+#     '''
+#     if isinstance(content, list):
+#         content = '\n'.join(content)
+#     f = StringIO(content)
+#     reader = csv.reader(f)
+#     for row in reader:
+#         yield row
+
+
+# def csv_split(content):
+#     '''
+#     This function and 'csv_read' are similar in performance on small data sets,
+#     but 'csv_read' should be preferred because it uses 'csv.reader' from the
+#     standard lib, and is therefore expected to be more reliable.
+#     '''
+#     if isinstance(content, str):
+#         content = content.split('\n')
+#     for line in content:
+#         yield line.split(',')
+
+
+# def parse_header(list_of_lines, csv_reader=csv_read):
+#     '''
+#     Parse the 'Header' section of an Illumina Sample Sheet.
+#     '''
+#     data = {}
+#     reader = csv_reader(list_of_lines)
+#     for row in reader:
+#         vals = [i for i in row if i]
+#         if not vals:
+#             continue
+#         elif len(vals) != 2:
+#             raise ValueError(f'Too many values: {vals!r}')
+#         else:
+#             data[vals[0]] = vals[1]
+#     return data
+
+
+# def parse_reads(list_of_lines, csv_reader=csv_read):
+#     '''
+#     Parse the 'Reads' section of an Illumina Sample Sheet.
+#     '''
+#     reader = csv_reader(list_of_lines)
+#     data = []
+#     for row in reader:
+#         tmp = [int(i) for i in row if i]
+#         if tmp:
+#             data.append(tmp)
+#     return data
+
+
+# def parse_settings(list_of_lines, csv_reader=csv_read):
+#     '''
+#     Parse the 'Settings' section of an Illumina Sample Sheet.
+#     '''
+#     reader = csv_reader(list_of_lines)
+#     data = []
+#     for row in reader:
+#         tmp = [i for i in row if i]
+#         if tmp:
+#             data.append(tmp)
+#     return data
+
+
+# def parse_data(list_of_lines, csv_reader=csv_read):
+#     '''
+#     Parse the 'Data' (samples) section of an Illumina Sample Sheet.
+#     '''
+#     reader = csv_reader(list_of_lines)
+#     header = next(reader)
+#     data = []
+#     for row in reader:
+#         data.append(dict(zip(header, row)))
+#     return data
+
+
+# def get_content(path):
+#     # header = re.compile(r'^\[\s*Header\s*]')
+#     section = re.compile(r'^\[\s*(\w+)\s*]')
+#     content = dict()
+#     lines = []
+#     key = None
+#
+#     with open(path) as f:
+#         for line in f:
+#             sec = section.match(line)
+#             if sec:
+#                 # New section
+#                 # print(sec.group(0), sec.group(1))
+#                 if key and lines:
+#                     content[key] = lines
+#
+#                 key = sec.group(1)
+#                 lines = []
+#             else:
+#                 lines.append(line.strip())
+#         else:
+#             if key and lines:
+#                 content[key] = lines
+#
+#     return content
+
+# def read_samplesheet(path, version='infer'):
+#     content = get_content(path)
+#
+#     if version == 'raw':
+#         return content
+#
+#     if version == 'infer':
+#         if 'BCLConvert_Settings' in content:
+#             version = 2
+#         else:
+#             version = 1
+#
+#     if version == 1:
+#         return SampleSheetv1(path=path, content=content)
+#     elif version == 2:
+#         return SampleSheetv2(path=path, content=content)
+#     else:
+#         raise ValueError(f'`version` must be `1` or `2`, you gave "{version}"')
+
+
+section = re.compile(r'^\[\s*(\w+)\s*]')
+def parse_sample_sheet(path):
     '''
-    This is the preferred function for reading CSV data. This function and
-    'csv_split' are similar in performance on small data sets, but 'csv_split'
-    is really just included for comparison.
+    Parse an Illumina Sample Sheet.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+
+    Returns
+    -------
+    dict
+        A dictionary of sections, where each section is a list of lines.
     '''
-    if isinstance(content, list):
-        content = '\n'.join(content)
-    f = StringIO(content)
-    reader = csv.reader(f)
-    for row in reader:
-        yield row
-
-
-def csv_split(content):
-    '''
-    This function and 'csv_read' are similar in performance on small data sets,
-    but 'csv_read' should be preferred because it uses 'csv.reader' from the
-    standard lib, and is therefore expected to be more reliable.
-    '''
-    if isinstance(content, str):
-        content = content.split('\n')
-    for line in content:
-        yield line.split(',')
-
-
-def parse_header(list_of_lines, csv_reader=csv_read):
-    '''
-    Parse the 'Header' section of an Illumina Sample Sheet.
-    '''
-    data = {}
-    reader = csv_reader(list_of_lines)
-    for row in reader:
-        vals = [i for i in row if i]
-        if not vals:
-            continue
-        elif len(vals) != 2:
-            raise ValueError(f'Too many values: {vals!r}')
-        else:
-            data[vals[0]] = vals[1]
-    return data
-
-
-def parse_reads(list_of_lines, csv_reader=csv_read):
-    '''
-    Parse the 'Reads' section of an Illumina Sample Sheet.
-    '''
-    reader = csv_reader(list_of_lines)
-    data = []
-    for row in reader:
-        tmp = [int(i) for i in row if i]
-        if tmp:
-            data.append(tmp)
-    return data
-
-
-def parse_settings(list_of_lines, csv_reader=csv_read):
-    '''
-    Parse the 'Settings' section of an Illumina Sample Sheet.
-    '''
-    reader = csv_reader(list_of_lines)
-    data = []
-    for row in reader:
-        tmp = [i for i in row if i]
-        if tmp:
-            data.append(tmp)
-    return data
-
-
-def parse_data(list_of_lines, csv_reader=csv_read):
-    '''
-    Parse the 'Data' (samples) section of an Illumina Sample Sheet.
-    '''
-    reader = csv_reader(list_of_lines)
-    header = next(reader)
-    data = []
-    for row in reader:
-        data.append(dict(zip(header, row)))
-    return data
-
-
-def get_content(path):
     # header = re.compile(r'^\[\s*Header\s*]')
-    section = re.compile(r'^\[\s*(\w+)\s*]')
     content = dict()
     lines = []
     key = None
@@ -140,7 +201,8 @@ def get_content(path):
                 key = sec.group(1)
                 lines = []
             else:
-                lines.append(line.strip())
+                if line.strip():
+                    lines.append(line.strip())
         else:
             if key and lines:
                 content[key] = lines
@@ -148,11 +210,8 @@ def get_content(path):
     return content
 
 
-def read_samplesheet(path, version='infer'):
-    content = get_content(path)
-
-    if version == 'raw':
-        return content
+def read_sample_sheet(path, version='infer'):
+    content = parse_sample_sheet(path)
 
     if version == 'infer':
         if 'BCLConvert_Settings' in content:
@@ -168,30 +227,41 @@ def read_samplesheet(path, version='infer'):
         raise ValueError(f'`version` must be `1` or `2`, you gave "{version}"')
 
 
+def parse_dict_section(lines):
+    data = {}
+    for line in lines:
+        if not line:
+            continue
+        key, val, *_ = line.split(',')
+        data[key] = val
+    return DictSection(data)
+
+
+def parse_table_section(lines, index_col='Sample_ID', name=None):
+    # data = pd.read_csv(io.StringIO(data.strip()))
+    columns = lines.pop(0).split(',')
+    rows = [line.split(',') for line in lines]
+    data = pd.DataFrame(rows, columns=columns)
+    data = data.dropna(axis=0, how='all')
+    # data.index = data[index_col]
+    # data.index.name = None
+    return TableSection(data, name=name)
+
+
 def looks_like_samplesheet(path):
     # print('Checking path ...')
     if not isinstance(path, pathlib.Path):
-        try:
-            path = pathlib.Path(path)
-        except:
-            # print('Cannot convert to path.')
-            return False
+        path = pathlib.Path(path)
 
     if not path.is_file():
         # print('Not a file.')
         return False
 
-    try:
-        sample_sheet = read_samplesheet(path, version='raw')
-    except:
-        # print('Cannot read file.')
-        return False
-
-    if sample_sheet.get('Header') and sample_sheet.get('Reads'):
-        # print('FOUND SAMPLE SHEET!!!')
+    if path.name == 'SampleSheet.csv':
+        return True
+    elif path.read_text().startswith('[Header]'):
         return True
     else:
-        # print('Missing "Header" or "Reads"')
         return False
 
 
@@ -199,11 +269,83 @@ def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
 
+class DictSection:
+    def __init__(self, data, name=None):
+        '''
+        data : dict
+        '''
+        self._data = data
+        self._name = name
+
+    def __repr__(self):
+        return self.data.__repr__()
+
+    def __getitem__(self, *args, **kwargs):
+        return self.data.__getitem__(*args, **kwargs)
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def name(self):
+        return self._name
+
+    def to_csv(self, *args, file=None, **kwargs):
+        text = f'[{self.name}]\n'
+        kwargs.setdefault('index', None)
+        text += self.data.to_csv(None, *args, **kwargs)
+        text += '\n'
+        if file is None:
+            return text
+        else:
+            print(text, file=file)
+
+
+class TableSection:
+    def __init__(self, data, name=None):
+        '''
+        data : pandas.DataFrame
+        '''
+        if not data.index.is_unique:
+            raise ValueError('Index must be unique')
+        self._data = data
+        self._name = name
+
+    def __repr__(self):
+        return self.data.__repr__()
+
+    def __getitem__(self, *args, **kwargs):
+        return self.data.__getitem__(*args, **kwargs)
+
+    # def loc(self, *args, **kwargs):
+    #     return self.data.loc(*args, **kwargs)
+    # ^Nope, doesn't support assignment.
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def name(self):
+        return self._name
+
+    def to_csv(self, *args, file=None, **kwargs):
+        text = f'[{self.name}]\n'
+        kwargs.setdefault('index', None)
+        text += self.data.to_csv(None, *args, **kwargs)
+        text += '\n'
+        if file is None:
+            return text
+        else:
+            print(text, file=file)
+
+
 class BaseSampleSheet:
     def __init__(self, path, content=None):
         self._path = path
         if content is None:
-            self._content = get_content(path)
+            self._content = parse_sample_sheet(path)
         elif isinstance(content, dict):
             self._content = content
         else:
@@ -262,7 +404,7 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._header:
-            self._header = parse_header(self.content.get('Header', []))
+            self._header = parse_dict_section(self.content.get('Header', []))
         return self._header
 
     @property
@@ -271,7 +413,7 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._reads:
-            self._reads = parse_reads(self.content.get('Reads', []))
+            self._reads = parse_dict_section(self.content.get('Reads', []))
         return self._reads
 
     @property
@@ -280,7 +422,7 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._settings:
-            self._settings = parse_settings(self.content.get('Settings', []))
+            self._settings = parse_dict_section(self.content.get('Settings', []))
         return self._settings
 
     @property
@@ -289,7 +431,7 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._data:
-            self._data = parse_data(self.content.get('Data', []))
+            self._data = parse_table_section(self.content.get('Data', []))
         return self._data
     
     samples = Data
@@ -305,7 +447,7 @@ class BaseSampleSheet:
     @property
     def is_split_lane(self):
         if self._is_split_lane is None:
-            self._is_split_lane = len(self.sample_project) > 1
+            self._is_split_lane = len(self.projects) > 1
         return self._is_split_lane
 
 
@@ -328,7 +470,7 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._bclconvert_settings:
-            self._bclconvert_settings = parse_settings(self.content.get('BCLConvert_Settings', []))
+            self._bclconvert_settings = parse_dict_section(self.content.get('BCLConvert_Settings', []))
         return self._bclconvert_settings
 
     Settings = BCLConvert_Settings
@@ -339,7 +481,7 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._cloud_settings:
-            self._cloud_settings = parse_settings(self.content.get('Cloud_Settings', []))
+            self._cloud_settings = parse_dict_section(self.content.get('Cloud_Settings', []))
         return self._cloud_settings
 
     @property
@@ -348,7 +490,7 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._bclconvert_data:
-            self._bclconvert_data = parse_data(self.content.get('BCLConvert_Data', []))
+            self._bclconvert_data = parse_table_section(self.content.get('BCLConvert_Data', []))
         return self._bclconvert_data
 
     Data = BCLConvert_Data
@@ -359,10 +501,22 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._cloud_data:
-            self._cloud_data = parse_data(self.content.get('Cloud_Data', []))
+            self._cloud_data = parse_table_section(self.content.get('Cloud_Data', []))
         return self._cloud_data
     
     samples = Data
+
+    @property
+    def sample_project(self):
+        if self._sample_project is None:
+            if 'Sample_Project' in self.BCLConvert_Data.data.columns:
+                self._sample_project = sorted(set(self.BCLConvert_Data.data['Sample_Project']))
+            elif 'ProjectName' in self.Cloud_Data.data.columns:
+                l = self.Cloud_Data.data['ProjectName'].tolist()
+                self._sample_project = sorted(set(l))
+        return self._sample_project
+
+    projects = sample_project
 
 
 class IlluminaSequencingData(base.RawData):
@@ -422,14 +576,25 @@ class IlluminaSequencingData(base.RawData):
     @property
     def samplesheet(self):
         if not self._samplesheet:
-            self.samplesheet = read_samplesheet(self.path_to_samplesheet, version='infer')
+            self._samplesheet = read_sample_sheet(self.path_to_samplesheet, version='infer')
         return self._samplesheet
 
-    @samplesheet.setter
-    def samplesheet(self, value):
-        if value is None:
-            raise ValueError(f'A path is required but you gave "{value}"')
-        self._samplesheet = value
+    # @samplesheet.setter
+    # def samplesheet(self, value):
+    #     if value is None:
+    #         raise ValueError(f'A path is required but you gave "{value}"')
+    #     self._samplesheet = value
+
+    @property
+    def name(self):
+        if 'Experiment Name' in self.samplesheet.Header.data:
+            return self.samplesheet.Header.data['Experiment Name']
+        elif 'RunName' in self.samplesheet.Header.data:
+            return self.samplesheet.Header.data['RunName']
+
+    @property
+    def projects(self):
+        return self.samplesheet.projects
 
     def find_samplesheet(self):
         # found_items = ss.find_samplesheet(self.rundir)
