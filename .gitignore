@@ -3,9 +3,10 @@
 *.out
 *.svg
 
-/bin
-/logs
-/notebooks
+bin/
+logs/
+notebooks/
+codebooks/
 
 *tmp*
 
