@@ -2,6 +2,7 @@ import re
 import pathlib
 import sys
 import warnings
+import logging
 
 # from gensvc.misc import sequencing_run, utils
 # from gensvc.data import sequencing_run
@@ -9,6 +10,9 @@ import warnings
 from gensvc.misc import utils
 from gensvc.data import illumina
 from gensvc.data.illumina import IlluminaSequencingData
+
+
+logger = logging.getLogger(__name__)
 
 
 def find(runid, datadir):
@@ -64,12 +68,12 @@ def find_samplesheets(dirname):
     if not isinstance(dirname, pathlib.Path):
         dirname = pathlib.Path(dirname)
 
-    # print(dirname)
-    for path in dirname.iterdir():
-        # print(path)
-        if path.is_file() and path.suffix == '.csv':
-            if illumina.looks_like_samplesheet(path):
-                found.append(path.resolve())
+    # logger.debug(f'Looking for sample sheets in {dirname}')
+    logger.debug(f'Looking for sample sheets in {dirname}')
+    for path in dirname.glob('*.csv'):
+        logger.debug(path)
+        if illumina.looks_like_samplesheet(path):
+            found.append(path.resolve())
     return sorted(set(found))
 
 
@@ -95,7 +99,7 @@ def list(dirpath, long=False, sep='\t'):
     long : boolean
         Print more stuff about each run.
     '''
-    lines = []
+    records = []
     short = not long
 
     for path in dirpath.iterdir():
@@ -109,16 +113,18 @@ def list(dirpath, long=False, sep='\t'):
         # print(seqrun)
 
         if short:
-            lines.append(
-                sep.join(
-                    [seqrun.instrument, seqrun.runid, str(seqrun.path)]
-                )
+            records.append(
+                {
+                    'instrument': seqrun.instrument,
+                    'runid': seqrun.runid,
+                    'path': str(seqrun.path)
+                }
             )
         elif long:
             row = {
                 'instrument': seqrun.instrument,
                 'runid': seqrun.runid,
-                'path': seqrun.path
+                'path': str(seqrun.path)
             }
             pathlist = find_samplesheets(rundir)
             if len(pathlist) > 1:
@@ -138,9 +144,12 @@ def list(dirpath, long=False, sep='\t'):
             # print(seqrun.path_to_samplesheet)
             # print(seqrun.samplesheet.sections)
             # print(seqrun.samplesheet.Header)
-            row['Experiment'] = seqrun.samplesheet.Header['Experiment Name']
-            row['Project'] = seqrun.samplesheet.sample_project
-            print(row)
+
+            # row['Experiment'] = seqrun.samplesheet.Header['Experiment Name']
+            row['experiment'] = seqrun.name
+            # row['Project'] = seqrun.samplesheet.sample_project
+            row['project'] = seqrun.projects
+            # print(row)
 
             # print(seqrun.samplesheet.FileFormatVersion, seqrun.samplesheet.version)
             # print(illuminadata.samplesheet.path)
@@ -153,6 +162,8 @@ def list(dirpath, long=False, sep='\t'):
             # --- >8
             # print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
             # print(sep.join([illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project]))
-    return lines
+
+            records.append(row)
+    return records
 
 # END
