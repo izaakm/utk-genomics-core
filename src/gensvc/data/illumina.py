@@ -58,7 +58,9 @@ def parse_sample_sheet(path):
         A dictionary of sections, where each section is a list of lines.
     '''
     # header = re.compile(r'^\[\s*Header\s*]')
-    content = dict()
+    content = {
+        'sections': [],
+    }
     lines = []
     key = None
 
@@ -68,9 +70,9 @@ def parse_sample_sheet(path):
             if sec:
                 # New section
                 # print(sec.group(0), sec.group(1))
+                content['sections'].append(sec.group(1))
                 if key and lines:
                     content[key] = lines
-
                 key = sec.group(1)
                 lines = []
             else:
@@ -79,7 +81,6 @@ def parse_sample_sheet(path):
         else:
             if key and lines:
                 content[key] = lines
-
     return content
 
 
@@ -100,14 +101,14 @@ def read_sample_sheet(path, version='infer'):
         raise ValueError(f'`version` must be `1` or `2`, you gave "{version}"')
 
 
-def parse_dict_section(lines):
+def parse_dict_section(lines, name=None):
     data = {}
     for line in lines:
         if not line:
             continue
         key, val, *_ = line.split(',')
         data[key] = val
-    return DictSection(data)
+    return DictSection(data, name=name)
 
 
 def parse_table_section(lines, index_col='Sample_ID', name=None):
@@ -151,7 +152,7 @@ class DictSection:
         self._name = name
 
     def __repr__(self):
-        return self.data.__repr__()
+        return f'{self.name}({self.data.__repr__()})'
 
     def __getitem__(self, *args, **kwargs):
         return self.data.__getitem__(*args, **kwargs)
@@ -166,8 +167,8 @@ class DictSection:
 
     def to_csv(self, *args, file=None, **kwargs):
         text = f'[{self.name}]\n'
-        kwargs.setdefault('index', None)
-        text += self.data.to_csv(None, *args, **kwargs)
+        for key, val in self.data.items():
+            text += f'{key},{val}\n'
         text += '\n'
         if file is None:
             return text
@@ -186,7 +187,7 @@ class TableSection:
         self._name = name
 
     def __repr__(self):
-        return self.data.__repr__()
+        return f'{self.name}({self.data.__repr__()})'
 
     def __getitem__(self, *args, **kwargs):
         return self.data.__getitem__(*args, **kwargs)
@@ -216,7 +217,7 @@ class TableSection:
 
 class BaseSampleSheet:
     def __init__(self, path, content=None):
-        self._path = path
+        self.path = path
         if content is None:
             self._content = parse_sample_sheet(path)
         elif isinstance(content, dict):
@@ -225,10 +226,9 @@ class BaseSampleSheet:
             raise ValueError(f'`content` must be a dict or None, you gave "{type(content)}"')
         self._header = None
         self._reads = None
-        self._settings = None
-        self._data = None
         self._sample_project = None
         self._is_split_lane = None
+        self._sections = []
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self._path}")'
@@ -253,7 +253,7 @@ class BaseSampleSheet:
 
     @property
     def realpath(self):
-        return self._path.resolve()
+        return self.path.resolve()
 
     @property
     def text(self):
@@ -277,7 +277,8 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._header:
-            self._header = parse_dict_section(self.content.get('Header', []))
+            name = 'Header'
+            self._header = parse_dict_section(self.content[name], name=name)
         return self._header
 
     @property
@@ -286,28 +287,9 @@ class BaseSampleSheet:
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._reads:
-            self._reads = parse_dict_section(self.content.get('Reads', []))
+            name = 'Reads'
+            self._reads = parse_dict_section(self.content[name], name=name)
         return self._reads
-
-    @property
-    def Settings(self):
-        '''
-        [TODO] Consider moving fxn into class as method.
-        '''
-        if not self._settings:
-            self._settings = parse_dict_section(self.content.get('Settings', []))
-        return self._settings
-
-    @property
-    def Data(self):
-        '''
-        [TODO] Consider moving fxn into class as method.
-        '''
-        if not self._data:
-            self._data = parse_table_section(self.content.get('Data', []))
-        return self._data
-    
-    samples = Data
 
     @property
     def sample_project(self):
@@ -323,19 +305,64 @@ class BaseSampleSheet:
             self._is_split_lane = len(self.projects) > 1
         return self._is_split_lane
 
+    def to_csv(self, *args, file=None, **kwargs):
+        text = ''
+        for section in self._sections:
+            text += section.to_csv(*args, file=None, **kwargs)
+        if file is None:
+            return text
+        else:
+            print(text, file=file)
+
 
 class SampleSheetv1(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._sections = [
+            self.Header,
+            self.Reads,
+            self.Settings,
+            self.Data,
+        ]
+
+    @property
+    def Settings(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._settings:
+            name = 'Settings'
+            self._settings = parse_dict_section(self.content[name], name=name)
+        return self._settings
+
+    @property
+    def Data(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._data:
+            name = 'Data'
+            self._data = parse_table_section(self.content[name], name=name)
+        return self._data
+    
+    samples = Data
 
 
 class SampleSheetv2(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._bclconvert_settings = None
         self._bclconvert_data = None
         self._cloud_settings = None
         self._cloud_data = None
-        super().__init__(*args, **kwargs)
+        self._sections = [
+            self.Header,
+            self.Reads,
+            self.BCLConvert_Settings,
+            self.BCLConvert_Data,
+            self.Cloud_Settings,
+            self.Cloud_Data,
+        ]
 
     @property
     def BCLConvert_Settings(self):
@@ -343,7 +370,8 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._bclconvert_settings:
-            self._bclconvert_settings = parse_dict_section(self.content.get('BCLConvert_Settings', []))
+            name = 'BCLConvert_Settings'
+            self._bclconvert_settings = parse_dict_section(self.content[name], name=name)
         return self._bclconvert_settings
 
     Settings = BCLConvert_Settings
@@ -354,7 +382,8 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._cloud_settings:
-            self._cloud_settings = parse_dict_section(self.content.get('Cloud_Settings', []))
+            name = 'Cloud_Settings'
+            self._cloud_settings = parse_dict_section(self.content[name], name=name)
         return self._cloud_settings
 
     @property
@@ -363,7 +392,8 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._bclconvert_data:
-            self._bclconvert_data = parse_table_section(self.content.get('BCLConvert_Data', []))
+            name = 'BCLConvert_Data'
+            self._bclconvert_data = parse_table_section(self.content[name], name=name)
         return self._bclconvert_data
 
     Data = BCLConvert_Data
@@ -374,7 +404,8 @@ class SampleSheetv2(BaseSampleSheet):
         [TODO] Consider moving fxn into class as method.
         '''
         if not self._cloud_data:
-            self._cloud_data = parse_table_section(self.content.get('Cloud_Data', []))
+            name = 'Cloud_Data'
+            self._cloud_data = parse_table_section(self.content[name], name=name)
         return self._cloud_data
     
     samples = Data
