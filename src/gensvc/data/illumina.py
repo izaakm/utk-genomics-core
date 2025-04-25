@@ -143,6 +143,85 @@ def samples_to_dataframe(samplesheet):
     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
 
+def get_sample_project(df, samples_col="Sample_ID", project_col="Sample_Project"):
+    '''
+    Get a mapping of Sample IDs to Project IDs from the sample sheet.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The sample sheet data.
+    samples_col : str
+        The column name for Sample IDs.
+    project_col : str
+        The column name for Project IDs.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping Sample IDs to Project IDs.
+    
+    Example
+    -------
+
+    >>> mapper = get_sample_project(
+    >>>     samplesheet.Cloud_Data.data,
+    >>>     project_col='ProjectName',
+    >>> )
+    '''
+    return df.set_index(samples_col)[project_col].to_dict()
+
+
+def set_sample_project(df, mapper, samples_col='Sample_ID'):
+    '''
+    Set the Sample_Project column in the sample sheet data (in place).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The sample sheet data.
+    mapper : dict
+        A dictionary mapping Sample IDs to Project IDs.
+    samples_col : str
+        The column name for Sample IDs.
+
+    Returns
+    -------
+    None
+
+    Example
+    -------
+
+    >>> mapper = get_sample_project(
+    >>>     samplesheet.Cloud_Data.data,
+    >>>     project_col='ProjectName',
+    >>> )
+    >>> set_sample_project(
+    >>>     samplesheet.BCLConvert_Data.data,
+    >>>     mapper
+    >>> )
+    '''
+    df['Sample_Project'] = df[samples_col].map(mapper)
+    return None
+
+
+def verify_sample_id(df, samples_col='Sample_ID'):
+    if not df[samples_col].is_unique:
+        is_dupe = df[samples_col].duplicated(keep=False)
+        dupes = df.loc[is_dupe, samples_col].to_list()
+        raise ValueError(f'Found duplicate Sample IDs: {dupes}')
+    return True
+
+
+def verify_sample_project(df, project_col='Sample_Project'):
+    if df[project_col].isin(['all', 'default']).any():
+        # See https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
+        is_bad = df[project_col].isin(['all', 'default'])
+        bad = df.loc[is_bad, project_col].drop_duplicates().to_list()
+        raise ValueError(f'Found illegal Project IDs: {bad}')
+    return True
+
+
 class DictSection:
     def __init__(self, data, name=None):
         '''
@@ -427,6 +506,20 @@ class SampleSheetv2(BaseSampleSheet):
         return self._sample_project
 
     projects = sample_project
+
+    def projectname_to_sampleproject(self):
+        '''
+        Convert the ProjectName column in the Cloud_Data section to Sample_Project
+        in the BCLConvert_Data section.
+
+        Returns
+        -------
+        None
+        '''
+        mapper = get_sample_project(self.Cloud_Data.data, project_col='ProjectName')
+        # This should set the data in place.
+        set_sample_project(self.BCLConvert_Data.data, mapper)
+        return None
 
 
 class IlluminaSequencingData(base.RawData):
