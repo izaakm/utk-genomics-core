@@ -187,7 +187,13 @@ class TableSection:
         self._name = name
 
     def __repr__(self):
-        return f'{self.name}({self.data.__repr__()})'
+        return (
+            f'{self.name}(\n'
+            f'{self.data.head().to_string()}\n'
+            '...\n'
+            f'{self.data.shape[0]} rows, {self.data.shape[1]} columns\n'
+            ')\n'
+        )
 
     def __getitem__(self, *args, **kwargs):
         return self.data.__getitem__(*args, **kwargs)
