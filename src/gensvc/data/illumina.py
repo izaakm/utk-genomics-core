@@ -139,8 +139,8 @@ def looks_like_samplesheet(path):
         return False
 
 
-def samples_to_dataframe(samplesheet):
-    return pd.DataFrame([s.to_json() for s in samplesheet.samples])
+# def samples_to_dataframe(samplesheet):
+#     return pd.DataFrame([s.to_json() for s in samplesheet.samples])
 
 
 def get_sample_project(df, samples_col="Sample_ID", project_col="Sample_Project"):
@@ -309,11 +309,13 @@ class BaseSampleSheet:
             self._content = content
         else:
             raise ValueError(f'`content` must be a dict or None, you gave "{type(content)}"')
-        self._header = None
-        self._reads = None
+        # Sections
+        self._header = None   # Standard for all subclasses.
+        self._reads = None    # Standard for all subclasses.
+        self._sections = []   # To be filled in by subclasses.
+        # Extras
         self._sample_project = None
         self._is_split_lane = None
-        self._sections = []
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self._path}")'
@@ -349,12 +351,17 @@ class BaseSampleSheet:
         '''
         Helper for the other properties. Read the data and parse it into
         sections, but don't actually parse the sections yet.
+
+        Returns
+        -------
+        dict
+            A dictionary of sections, where each section is a list of lines.
         '''
         return self._content
 
     @property
     def sections(self):
-        return [key for key in self.content.keys()]
+        return self._sections
 
     @property
     def Header(self):
@@ -378,8 +385,11 @@ class BaseSampleSheet:
 
     @property
     def sample_project(self):
+        '''
+        [TODO] Rename: just use `projects` instead.
+        '''
         if self._sample_project is None:
-            self._sample_project = sorted(set(self.samples['Sample_Project']))
+            self._sample_project = sorted(set(self.Data.data['Sample_Project']))
         return self._sample_project
 
     projects = sample_project
@@ -403,6 +413,9 @@ class BaseSampleSheet:
 class SampleSheetv1(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Set these *before* the property in _sections.
+        self._settings = None
+        self._data = None
         self._sections = [
             self.Header,
             self.Reads,
@@ -430,8 +443,6 @@ class SampleSheetv1(BaseSampleSheet):
             self._data = parse_table_section(self.content[name], name=name)
         return self._data
     
-    samples = Data
-
 
 class SampleSheetv2(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
@@ -493,10 +504,11 @@ class SampleSheetv2(BaseSampleSheet):
             self._cloud_data = parse_table_section(self.content[name], name=name)
         return self._cloud_data
     
-    samples = Data
-
     @property
     def sample_project(self):
+        '''
+        [TODO] Rename: just use `projects` instead.
+        '''
         if self._sample_project is None:
             if 'Sample_Project' in self.BCLConvert_Data.data.columns:
                 self._sample_project = sorted(set(self.BCLConvert_Data.data['Sample_Project']))
