@@ -25,5 +25,8 @@ install:
 	conda env create -f environment.yml
 	eval "$$(conda shell.bash hook)" && conda activate $(CONDA_ENV_NAME) && pip install -e .
 
+uninstall:
+	conda env remove -n $(CONDA_ENV_NAME)
+
 clean:
 	rm -rf bin/
