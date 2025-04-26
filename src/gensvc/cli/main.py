@@ -35,6 +35,14 @@ from gensvc.misc import config, utils
 
 logger = logging.getLogger(__name__)
 
+
+def cli_sample_sheet(args):
+    '''
+    Generate a sample sheet for BCL-Convert.
+    '''
+    from gensvc.data import illumina
+
+
 def run_list(args):
     records = []
     for d in args.path:
@@ -136,6 +144,19 @@ def get_parser():
     )
 
     subparsers = parser.add_subparsers(help='sub-command help')
+
+    # Set up a new sample sheet.
+    parse_sample_sheet = subparsers.add_parser(
+        'samplesheet',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_sample_sheet.set_defaults(func=cli_sample_sheet)
+    parse_sample_sheet.add_argument(
+        '--from', '-f',
+        action='store',
+        type=pathlib.Path,
+        help='Initialize new sample sheet from the given sample sheet.'
+    )
 
     # Generate summary stats.
     parse_extract_bcl2fastq_stats = subparsers.add_parser(
