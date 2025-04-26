@@ -111,14 +111,15 @@ def parse_dict_section(lines, name=None):
     return DictSection(data, name=name)
 
 
-def parse_table_section(lines, index_col='Sample_ID', name=None):
-    # data = pd.read_csv(io.StringIO(data.strip()))
-    columns = lines.pop(0).split(',')
-    rows = [line.split(',') for line in lines]
-    data = pd.DataFrame(rows, columns=columns)
-    data = data.dropna(axis=0, how='all')
-    # data.index = data[index_col]
-    # data.index.name = None
+def parse_table_section(lines, name=None):
+    if lines:
+        columns = lines.pop(0).split(',')
+        rows = [line.split(',') for line in lines]
+        data = pd.DataFrame(rows, columns=columns)
+        data = data.dropna(axis=0, how='all')
+    else:
+        # Return an empty DataFrame for constistency with `parse_dict_section`.
+        data = pd.DataFrame()
     return TableSection(data, name=name)
 
 
@@ -301,24 +302,18 @@ class TableSection:
 
 
 class BaseSampleSheet:
-    def __init__(self, path, content=None):
-        self.path = path
-        if content is None:
-            self._content = parse_sample_sheet(path)
-        elif isinstance(content, dict):
-            self._content = content
-        else:
-            raise ValueError(f'`content` must be a dict or None, you gave "{type(content)}"')
+    def __init__(self, path=None, content=None):
+        self.path = path      # Use setter.
+        self._content = content
         # Sections
         self._header = None   # Standard for all subclasses.
         self._reads = None    # Standard for all subclasses.
-        self._sections = []   # To be filled in by subclasses.
         # Extras
         self._sample_project = None
         self._is_split_lane = None
 
     def __repr__(self):
-        return f'{self.__class__.__name__}("{self._path}")'
+        return f'{self.__class__.__name__}("{self.path}")'
 
     @property
     def FileFormatVersion(self):
@@ -336,7 +331,9 @@ class BaseSampleSheet:
 
     @path.setter
     def path(self, value):
-        self._path = pathlib.Path(value)
+        if isinstance(value, str):
+            value = pathlib.Path(value)
+        self._path = value
 
     @property
     def realpath(self):
@@ -361,7 +358,7 @@ class BaseSampleSheet:
 
     @property
     def sections(self):
-        return self._sections
+        return []
 
     @property
     def Header(self):
@@ -412,11 +409,24 @@ class BaseSampleSheet:
 
 class SampleSheetv1(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault(
+            'content',
+            {'Header': [], 'Reads': [], 'Settings': [], 'Data': []}
+        )
         super().__init__(*args, **kwargs)
         # Set these *before* the property in _sections.
         self._settings = None
         self._data = None
-        self._sections = [
+        # self._sections = [
+        #     self.Header,
+        #     self.Reads,
+        #     self.Settings,
+        #     self.Data,
+        # ]
+
+    @property
+    def sections(self):
+        return [
             self.Header,
             self.Reads,
             self.Settings,
@@ -446,12 +456,27 @@ class SampleSheetv1(BaseSampleSheet):
 
 class SampleSheetv2(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault(
+            'content',
+            {'Header': [], 'Reads': [], 'BCLConvert_Settings': [], 'BCLConvert_Data': [], 'Cloud_Settings': [], 'Cloud_Data': []}
+        )
         super().__init__(*args, **kwargs)
         self._bclconvert_settings = None
         self._bclconvert_data = None
         self._cloud_settings = None
         self._cloud_data = None
-        self._sections = [
+        # self._sections = [
+        #     self.Header,
+        #     self.Reads,
+        #     self.BCLConvert_Settings,
+        #     self.BCLConvert_Data,
+        #     self.Cloud_Settings,
+        #     self.Cloud_Data,
+        # ]
+
+    @property
+    def sections(self):
+        return [
             self.Header,
             self.Reads,
             self.BCLConvert_Settings,
