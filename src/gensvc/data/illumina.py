@@ -399,7 +399,7 @@ class BaseSampleSheet:
 
     def to_csv(self, *args, file=None, **kwargs):
         text = ''
-        for section in self._sections:
+        for section in self.sections:
             text += section.to_csv(*args, file=None, **kwargs)
         if file is None:
             return text
