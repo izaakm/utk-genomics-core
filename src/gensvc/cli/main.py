@@ -42,6 +42,19 @@ def cli_sample_sheet(args):
     '''
     from gensvc.data import illumina
 
+    if args.src_sample_sheet:
+        sample_sheet = illumina.read_sample_sheet(args.src_sample_sheet)
+    elif args.format == 'V1':
+        sample_sheet = illumina.SampleSheetv1()
+    else:
+        sample_sheet = illumina.SampleSheetv2()
+
+    if args.projectname_to_sampleproject:
+        # Only valid for V2 sample sheets.
+        sample_sheet.projectname_to_sampleproject()
+
+    print(sample_sheet.to_csv())
+
 
 def run_list(args):
     records = []
@@ -152,10 +165,24 @@ def get_parser():
     )
     parse_sample_sheet.set_defaults(func=cli_sample_sheet)
     parse_sample_sheet.add_argument(
+        '--format', '-F',
+        choices=['V1', 'V2'],
+        default='V2',
+        help='Sample sheet format.'
+    )
+    parse_sample_sheet.add_argument(
         '--from', '-f',
+        dest='src_sample_sheet',  # from is a reserved word.
         action='store',
         type=pathlib.Path,
         help='Initialize new sample sheet from the given sample sheet.'
+    )
+    parse_sample_sheet.add_argument(
+        '--projectname2sampleproject', '-p',
+        dest='projectname_to_sampleproject',
+        action='store_true',
+        default=False,
+        help='Map the "ProjectName" from "Cloud_Data" to "Sample_Project" in "BCLConvert_Data".'
     )
 
     # Generate summary stats.
