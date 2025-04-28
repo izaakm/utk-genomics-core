@@ -161,6 +161,7 @@ def get_parser():
     # Set up a new sample sheet.
     parse_sample_sheet = subparsers.add_parser(
         'samplesheet',
+        help='Generate a sample sheet for BCL-Convert.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parse_sample_sheet.set_defaults(func=cli_sample_sheet)
