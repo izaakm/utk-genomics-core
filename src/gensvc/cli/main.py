@@ -156,9 +156,14 @@ def get_parser():
         help='Print extra stuff.'
     )
 
+    # ************************************************************
+    # Subparsers
+    # ************************************************************
     subparsers = parser.add_subparsers(help='sub-command help')
 
+    # ************************************************************
     # Set up a new sample sheet.
+    # ************************************************************
     parse_sample_sheet = subparsers.add_parser(
         'samplesheet',
         help='Generate a sample sheet for BCL-Convert.',
@@ -173,7 +178,7 @@ def get_parser():
     )
     parse_sample_sheet.add_argument(
         '--from', '-f',
-        dest='src_sample_sheet',  # from is a reserved word.
+        dest='src_sample_sheet',  # `from` is a reserved word.
         action='store',
         type=pathlib.Path,
         help='Initialize new sample sheet from the given sample sheet.'
@@ -186,21 +191,22 @@ def get_parser():
         help='Map the "ProjectName" from "Cloud_Data" to "Sample_Project" in "BCLConvert_Data".'
     )
 
+    # ************************************************************
     # Generate summary stats.
+    # ************************************************************
     parse_extract_bcl2fastq_stats = subparsers.add_parser(
         'extract-bcl2fastq-stats', 
         aliases=['ex'],
         help=bcl2fastq.__doc__.strip().split('\n')[0],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
+    parse_extract_bcl2fastq_stats.set_defaults(func=extract_bcl2fastq_stats)
     parse_extract_bcl2fastq_stats.add_argument(
         'bcl2fastq_dir',  # Must be underscore.
         action='store',
         type=pathlib.Path,
         help='The bcl2fastq output directory containing the "Reports" and "Stats" subdirectories.'
     )
-
     parse_extract_bcl2fastq_stats.add_argument(
         '--statsfile',
         action='store',
@@ -211,7 +217,6 @@ def get_parser():
             'provided, this defaults to "<fastqdir>/Stats/Stats.json".'
         )
     )
-
     parse_extract_bcl2fastq_stats.add_argument(
         '--outdir',
         action='store',
@@ -220,16 +225,16 @@ def get_parser():
         help='Directory in which to put the output files.'
     )
 
-    parse_extract_bcl2fastq_stats.set_defaults(func=extract_bcl2fastq_stats)
-
+    # ************************************************************
     # List sequencing runs.
+    # ************************************************************
     parse_reports = subparsers.add_parser(
         'list', 
         aliases=['ls', 'scan', 'sc'],
         help='List sequencing runs in the given director',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
+    parse_reports.set_defaults(func=run_list)
     parse_reports.add_argument(
         'path',  
         default=[
@@ -240,7 +245,6 @@ def get_parser():
         nargs='*',
         help='The path(s) to the directory containing the sequencing runs.'
     )
-
     parse_reports.add_argument(
         '-l', '--long',
         action='store_true',
@@ -253,87 +257,84 @@ def get_parser():
         type=str,
         help='Column separator.'
     )
-    parse_reports.set_defaults(func=run_list)
 
+    # ************************************************************
     # Convert BCL files to FASTQ.
+    # ************************************************************
     parse_converter = subparsers.add_parser(
         'convert', 
         aliases=['co'],
-        help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.'
+        help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
+    parse_converter.set_defaults(func=run_bcl2fastq)
     parse_converter.add_argument(
         '-r', '--runfolder-dir',
         action='store',
         type=pathlib.Path,
         help='Path to sequencing run.'
     )
-
     parse_converter.add_argument(
         '-s', '--sample-sheet',  
         action='store',
         type=pathlib.Path,
         help='Path to sample sheet.'
     )
-
     parse_converter.add_argument(
         '-o', '--output-dir',  
         action='store',
         type=pathlib.Path,
         help='Path to output directory.'
     )
-
     parse_converter.add_argument(
         '-t', '--processing-threads',  
         action='store',
         type=int,
         help='Number of threads to use.'
     )
-
     parse_converter.add_argument(
         '-b', '--sbatch',  
         action='store_true',
         help='Submit bcl2fastq job to Slurm using `sbatch`.'
     )
 
-    parse_converter.set_defaults(func=run_bcl2fastq)
-
+    # ************************************************************
     # Trasfer data to user's project directory.
+    # ************************************************************
     parse_setup_transfer = subparsers.add_parser(
         'setup_transfer', 
         aliases=['se'],
-        help='Set up data for tranfer.'
+        help='Set up data for tranfer.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
+    parse_setup_transfer.set_defaults(func=run_setup_transfer)
     parse_setup_transfer.add_argument(
         'dirname',  
         action='store',
         type=str,
         help='The path to the processed data directory.'
     )
-
     parse_setup_transfer.add_argument(
         '-s', '--sbatch',  
         action='store_true',
         help='Run transfer as a Slurm job.'
     )
 
-    parse_setup_transfer.set_defaults(func=run_setup_transfer)
-
+    # ************************************************************
     # Trasfer data to user's project directory.
+    # ************************************************************
     parse_transfer = subparsers.add_parser(
         'transfer', 
         aliases=['tr'],
         help='Transfer results to project directory.'
     )
-
+    parse_transfer.set_defaults(func=run_transfer)
     parse_transfer.add_argument(
         'runid',  
         action='store',
         type=str,
         help='The <runid> of the sequencing run.'
     )
-
     parse_transfer.add_argument(
         '-f', '--from',  
         dest='source',
@@ -341,7 +342,6 @@ def get_parser():
         type=pathlib.Path,
         help='Path to transfer source directory.'
     )
-
     parse_transfer.add_argument(
         '-t', '--to',  
         dest='destination',
@@ -349,14 +349,11 @@ def get_parser():
         type=pathlib.Path,
         help='Path to transfer destination directory.'
     )
-
     parse_transfer.add_argument(
         '-s', '--sbatch',  
         action='store_true',
         help='Run transfer as a Slurm job.'
     )
-
-    parse_transfer.set_defaults(func=run_transfer)
 
     return parser
 
