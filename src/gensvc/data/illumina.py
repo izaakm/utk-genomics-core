@@ -397,10 +397,21 @@ class BaseSampleSheet:
             self._is_split_lane = len(self.projects) > 1
         return self._is_split_lane
 
+    @property
+    def info(self):
+        warnings.warn(
+            (
+                f'This object ("{self.__class__.__name__}")'
+                ' has an `info` property, but it is not implemented.'
+                ' Please implement a custom `info` property in your subclass.'
+            ),
+            UserWarning
+        )
+
     def to_csv(self, *args, file=None, **kwargs):
         text = ''
         for section in self.sections:
-            text += section.to_csv(*args, file=None, **kwargs)
+            text += section.to_csv(*args, file=file, **kwargs)
         if file is None:
             return text
         else:
