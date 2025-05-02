@@ -17,6 +17,7 @@ import pandas as pd
 from gensvc.wrappers import bcl2fastq, slurm
 from gensvc.core_facility import reports, transfer
 from gensvc.misc import config, utils
+from gensvc.data import illumina
 
 # def as_path(obj):
 #     try:
@@ -57,42 +58,28 @@ def cli_sample_sheet(args):
 
 
 def run_list(args):
-    records = []
-    for d in args.path:
-        if d and os.path.isdir(d):
-            records.extend(reports.list(pathlib.Path(d), long=args.long))
-    report = pd.DataFrame(records)
-    if 'project' in report.columns:
-        report = report.explode('project')
-
-    # --- 8< ---
-    # I DON'T WHY THIS STUPID ASS PANDAS "FORMATTERS" BULLSHIT IS SO FUCKING COMPLICATED.
-    # fmt_left_align = '{{:<{width}}}'
-    # header_justify = 'center'
-    # # formatters = [lambda x: fmt_left_align.format(x) for key in report.columns]
-    # col_space = []
-    # formatters = []
-    # for col in report.columns:
-    #     width = report[col].apply(lambda x: len(str(x)) + 2).max()
-    #     col_space.append(width)
-    #
-    #     formatter = fmt_left_align.format(width=width)
-    #     formatters.append(
-    #         lambda x: formatter.format(x)
-    #     )
-    #     print(formatter)
-    # print(formatters)
-    # if 'path' in report.columns and 'experiment' in report.columns:
-    #     report = report.sort_values(['path', 'experiment']).to_string(index=False, justify=header_justify, col_space=col_space, formatters=formatters)
-    # else:
-    #     report = report.sort_values(['path']).to_string(index=False, justify=header_justify, col_space=col_space, formatters=formatters)
-    # print(report)
-    # --- >8 ---
-    if 'path' in report.columns and 'experiment' in report.columns:
-        report = report.sort_values(['path', 'experiment']).to_csv(sep=args.sep, index=False)
-    else:
-        report = report.sort_values(['path']).to_csv(sep=args.sep, index=False)
-    print(report)
+    '''
+    '''
+    # print(args)
+    seqruns = []
+    for dirpath in args.path:
+        for rundir in reports.find_seq_runs(dirpath):
+            try:
+                seqrun = illumina.IlluminaSequencingData(rundir)
+            except Exception as e:
+                logger.debug(f'Error reading {rundir}: {e}')
+                continue
+            if not seqrun.path_to_samplesheet.exists():
+                sample_sheets = reports.find_samplesheets(rundir)
+                if len(sample_sheets) == 1:
+                    seqrun.path_to_samplesheet = sample_sheets[0]
+                elif len(sample_sheets) > 1:
+                    logger.debug(f'Multiple sample sheets found in {rundir}')
+                    continue
+            seqruns.append(seqrun)
+    # The 'table' is a string.
+    table = reports.list_runs(seqruns, long=args.long, sep=args.sep)
+    print(table)
     return 0
 
 
