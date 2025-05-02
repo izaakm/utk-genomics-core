@@ -5,8 +5,8 @@ CODEBOOKS_DST := $(subst $(CODEBOOKS_HOME),codebooks,$(CODEBOOKS_SRC))
 
 CONDA_ENV_NAME := $(shell grep '^\s*name:' environment.yml | awk '{print $$2}')
 
-$(info CODEBOOKS_SRC: $(CODEBOOKS_SRC))
-$(info CODEBOOKS_DST: $(CODEBOOKS_DST))
+# $(info CODEBOOKS_SRC: $(CODEBOOKS_SRC))
+# $(info CODEBOOKS_DST: $(CODEBOOKS_DST))
 
 .PHONY: all tags init install uninstall clean
 
