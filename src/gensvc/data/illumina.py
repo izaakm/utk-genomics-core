@@ -309,6 +309,7 @@ class BaseSampleSheet:
         self._header = None   # Standard for all subclasses.
         self._reads = None    # Standard for all subclasses.
         # Extras
+        self._info = None
         self._sample_project = None
         self._is_split_lane = None
 
@@ -464,6 +465,16 @@ class SampleSheetv1(BaseSampleSheet):
             self._data = parse_table_section(self.content[name], name=name)
         return self._data
     
+    @property
+    def info(self):
+        self._info = { **self.Header.data }
+        self._info['projects'] = self.projects
+        self._info['is_split_lane'] = self.is_split_lane
+        self._info['samplesheet_version'] = self.version
+        self._info['samplesheet_path'] = str(self.path.resolve())
+        self._info['samplesheet_filename'] = self.path.name
+        return self._info
+
 
 class SampleSheetv2(BaseSampleSheet):
     def __init__(self, *args, **kwargs):
@@ -554,6 +565,16 @@ class SampleSheetv2(BaseSampleSheet):
         return self._sample_project
 
     projects = sample_project
+
+    @property
+    def info(self):
+        self._info = { **self.Header.data }
+        self._info['projects'] = self.projects
+        self._info['is_split_lane'] = self.is_split_lane
+        self._info['samplesheet_version'] = self.version
+        self._info['samplesheet_path'] = str(self.path.resolve())
+        self._info['samplesheet_filename'] = self.path.name
+        return self._info
 
     def projectname_to_sampleproject(self):
         '''
