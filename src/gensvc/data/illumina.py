@@ -617,7 +617,13 @@ class IlluminaSequencingData(base.RawData):
         else:
             self._instrument = 'UNKNOWN'
 
-        self._path_to_samplesheet = path_to_samplesheet
+        # self._path_to_samplesheet = path_to_samplesheet
+        if path_to_samplesheet is None:
+            self._path_to_samplesheet = self._rundir / 'SampleSheet.csv'
+        else:
+            if isinstance(path_to_samplesheet, str):
+                path_to_samplesheet = pathlib.Path(path_to_samplesheet)
+            self._path_to_samplesheet = path_to_samplesheet
         self._samplesheet = None
         self._info = None
         self._samples = None
@@ -680,9 +686,16 @@ class IlluminaSequencingData(base.RawData):
         #             print(item, file=sys.stderr)
         pass
 
-    def ls(self):
-        for path in sorted(self.path.iterdir()):
-            print(path)
+    # def ls(self):
+    #     for path in sorted(self.path.iterdir()):
+    #         print(path)
 
+    @property
+    def info(self):
+        self._info = { **self.samplesheet.info }
+        self._info['runid'] = self.runid
+        self._info['instrument'] = self.instrument
+        self._info['rundir'] = str(self.rundir.resolve())
+        return self._info
 
 # END
