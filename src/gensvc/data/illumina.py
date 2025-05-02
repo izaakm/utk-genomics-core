@@ -321,7 +321,7 @@ class BaseSampleSheet:
         The `FileFormatVersion` key is included in the v2 sample sheet but not
         v1. Therefore, if the key is not present, default to `1`.
         '''
-        return int(self.Header.get('FileFormatVersion', 1))
+        return int(self.Header.data.get('FileFormatVersion', 1))
 
     version = FileFormatVersion
 
