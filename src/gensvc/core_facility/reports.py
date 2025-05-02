@@ -93,19 +93,28 @@ def find_seq_runs(dirname):
     return sorted(seq_runs)
 
 
-def list_runs(seqruns, long=False, sep='\t'):
+def list_runs(seqruns, long=False, sep='\t', as_dataframe=False):
     '''
     List sequencing runs in `dirpath`.
 
     long : boolean
         Print more stuff about each run.
+
+    [TODO] Add a `--json` option to output JSON.
+
+    [TODO] seems like there is a bug when printing, I think one of the runs has
+    no "projects" and this causes the columns to be misaligned. I thought
+    adding 'na_rep="-"' would fix this, but it doesn't seem to work.
     '''
     data = [seqrun.info for seqrun in seqruns]
     table = pd.DataFrame(data)
     if 'projects' in table:
         table = table.explode(column='projects')
 
-    return table.to_csv(index=None, sep=sep)
+    if as_dataframe:
+        return table
+    else:
+        return table.to_csv(index=None, sep=sep, na_rep='-')
 
 
 # END
