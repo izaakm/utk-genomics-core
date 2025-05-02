@@ -3,6 +3,7 @@ import pathlib
 import sys
 import warnings
 import logging
+import pandas as pd
 
 # from gensvc.misc import sequencing_run, utils
 # from gensvc.data import sequencing_run
@@ -83,87 +84,28 @@ def find_seq_runs(dirname):
 
     seq_runs = []
     for path in dirname.iterdir():
-        try:
-            runid = illumina.regex_runid.search(str(path)).group(0)
-            seq_runs.append((runid, path))
-        except:
-            pass
+        runid = illumina.regex_runid.search(str(path))
+        if runid:
+            seq_runs.append(path.resolve())
+        else:
+            logger.debug(f'No runid found in "{path}"')
 
-    return sorted(seq_runs, key=lambda item: item[-1])
+    return sorted(seq_runs)
 
 
-def list(dirpath, long=False, sep='\t'):
+def list_runs(seqruns, long=False, sep='\t'):
     '''
     List sequencing runs in `dirpath`.
 
     long : boolean
         Print more stuff about each run.
     '''
-    records = []
-    short = not long
+    data = [seqrun.info for seqrun in seqruns]
+    table = pd.DataFrame(data)
+    if 'projects' in table:
+        table = table.explode(column='projects')
 
-    for path in dirpath.iterdir():
-        # print(path)
-        rundir = path.resolve()
-        runid = utils.get_runid(rundir)
-        if not runid:
-            continue
+    return table.to_csv(index=None, sep=sep)
 
-        seqrun = IlluminaSequencingData(rundir)
-        # print(seqrun)
-
-        if short:
-            records.append(
-                {
-                    'instrument': seqrun.instrument,
-                    'runid': seqrun.runid,
-                    'path': str(seqrun.path)
-                }
-            )
-        elif long:
-            row = {
-                'instrument': seqrun.instrument,
-                'runid': seqrun.runid,
-                'path': str(seqrun.path)
-            }
-            pathlist = find_samplesheets(rundir)
-            if len(pathlist) > 1:
-                warnings.warn(f'Multiple sample sheets found: "{pathlist}"')
-                for ss in pathlist:
-                    if ss.name == 'SampleSheet.csv':
-                        seqrun.path_to_samplesheet = ss
-                        break
-                else:
-                    # Continue to the next sequencing run.
-                    warnings.warn(f'Unable to disambiguate sample sheets, skipping {rundir}')
-                    continue
-            else:
-                seqrun.path_to_samplesheet = pathlist[0]
-
-            # print(seqrun)
-            # print(seqrun.path_to_samplesheet)
-            # print(seqrun.samplesheet.sections)
-            # print(seqrun.samplesheet.Header)
-
-            # row['Experiment'] = seqrun.samplesheet.Header['Experiment Name']
-            row['experiment'] = seqrun.name
-            # row['Project'] = seqrun.samplesheet.sample_project
-            row['project'] = seqrun.projects
-            # print(row)
-
-            # print(seqrun.samplesheet.FileFormatVersion, seqrun.samplesheet.version)
-            # print(illuminadata.samplesheet.path)
-            # --- 8<
-            # try:
-            #     for project in illuminadata.sample_project:
-            #         print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
-            # except:
-            #     print(f'{instrument:<8} {runid:<35} {path}')
-            # --- >8
-            # print(f'{illuminadata.instrument:<8} {illuminadata.runid:<35} {illuminadata.info["Experiment Name"]:<40} {project:<40}')
-            # print(sep.join([illuminadata.instrument, illuminadata.runid, illuminadata.samplesheet.Header.get("Experiment Name"), project]))
-
-            records.append(row)
-    return records
 
 # END
