@@ -692,7 +692,14 @@ class IlluminaSequencingData(base.RawData):
 
     @property
     def info(self):
-        self._info = { **self.samplesheet.info }
+        if self.path_to_samplesheet.exists():
+            self._info = { **self.samplesheet.info }
+        else:
+            self._info = {
+                'projects': [],
+                'samplesheet_path': None,
+                'samplesheet_filename': None
+            }
         self._info['runid'] = self.runid
         self._info['instrument'] = self.instrument
         self._info['rundir'] = str(self.rundir.resolve())
