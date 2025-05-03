@@ -38,11 +38,27 @@ _instrument_id ={
 
 _instruments = sorted(_instrument_id.values())
 
-regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')
-section = re.compile(r'^\[\s*(\w+)\s*]')
+
+# Example run IDs:
+# NextSeq: 240924_VL00838_3_AAG5VFFM5
+# NovaSeq: 240820_A01770_0078_AHHMWLDRX5
+# iSeq: 20250124_FS10003266_2_BWB90518-0813
+re_runid = re.compile(r'\d{6,8}_[A-Z0-9]{6,}_\d{1,}_[-A-Z0-9]{1,}')
+regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')  # DEPRECATED
+
+# Sample sheet section header.
+re_section = re.compile(r'^\[\s*(\w+)\s*]')
 
 logger = logging.getLogger(__name__)
 
+
+def is_runid(runid):
+    if not isinstance(runid, str):
+        return False
+    if re_runid.match(runid):
+        return True
+    else:
+        return False
 
 def parse_sample_sheet(path):
     '''
@@ -66,7 +82,7 @@ def parse_sample_sheet(path):
 
     with open(path) as f:
         for line in f:
-            sec = section.match(line)
+            sec = re_section.match(line)
             if sec:
                 # New section
                 # print(sec.group(0), sec.group(1))
