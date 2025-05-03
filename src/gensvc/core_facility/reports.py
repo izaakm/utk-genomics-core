@@ -16,26 +16,26 @@ from gensvc.data.illumina import IlluminaSequencingData
 logger = logging.getLogger(__name__)
 
 
-def find(runid, datadir):
-    if not datadir.is_dir():
-        raise ValueError('not a directory: "{datadir}"')
-    for item in datadir.glob('*'):
-        if item.name == runid:
-            return item
+# def find(runid, datadir):
+#     if not datadir.is_dir():
+#         raise ValueError('not a directory: "{datadir}"')
+#     for item in datadir.glob('*'):
+#         if item.name == runid:
+#             return item
 
 
-def find_rundir(runid, miseqdir=None, novaseqdir=None):
-    rundir = find(runid, miseqdir) or find(runid, novaseqdir)
-    return rundir
+# def find_rundir(runid, miseqdir=None, novaseqdir=None):
+#     rundir = find(runid, miseqdir) or find(runid, novaseqdir)
+#     return rundir
 
 
-def find_procdir(runid, procdir=None):
-    rundir = find(runid, procdir)
-    if rundir and rundir.is_dir():
-        contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
-        return contents[-1]
-    else:
-        return None
+# def find_procdir(runid, procdir=None):
+#     rundir = find(runid, procdir)
+#     if rundir and rundir.is_dir():
+#         contents = sorted([item for item in rundir.glob('*') if item.is_dir()])
+#         return contents[-1]
+#     else:
+#         return None
 
 
 def new_procdir(runid, procdir=None):
@@ -84,8 +84,9 @@ def find_seq_runs(dirname):
 
     seq_runs = []
     for path in dirname.iterdir():
-        runid = illumina.regex_runid.search(str(path))
-        if runid:
+        if not path.is_dir():
+            continue
+        if illumina.is_runid(path.name):
             seq_runs.append(path.resolve())
         else:
             logger.debug(f'No runid found in "{path}"')
