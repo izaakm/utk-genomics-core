@@ -132,7 +132,12 @@ def parse_table_section(lines, name=None):
         columns = lines.pop(0).split(',')
         rows = [line.split(',') for line in lines]
         data = pd.DataFrame(rows, columns=columns)
+        # Convert whitespece to NaN.
+        data = data.replace(r'^\s*$', pd.NA, regex=True)
+        # Drop rows.
         data = data.dropna(axis=0, how='all')
+        # Drop columns.
+        data = data.dropna(axis=1, how='all')
     else:
         # Return an empty DataFrame for constistency with `parse_dict_section`.
         data = pd.DataFrame()
