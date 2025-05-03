@@ -66,24 +66,49 @@ def run_list(args):
     - A sample sheet.
     '''
     # print(args)
-    data = []
+    sample_sheets = []
+    run_dirs = []
+    info = []
     for path in args.pathlist:
-        for rundir in reports.find_seq_runs(path):
-            try:
-                seqrun = illumina.IlluminaSequencingData(rundir)
-            except Exception as e:
-                logger.debug(f'Error reading {rundir}: {e}')
+        if illumina.looks_like_samplesheet(path):
+            print(f'Found sample sheet: {path}')
+            sample_sheets.append(path)
+        elif os.path.isdir(path):
+            if illumina.is_runid(os.path.basename(path)):
+                print(f'Found runid: {path}')
+                run_dirs.append(path)
+            else:
+                for rundir in reports.find_seq_runs(path):
+                    run_dirs.append(rundir)
+
+    for path in sample_sheets:
+        try:
+            sample_sheet = illumina.read_sample_sheet(path)
+            info.append(sample_sheet.info)
+        except Exception as e:
+            logger.debug(f'Error reading {path}: {e}')
+            continue
+    for path in run_dirs:
+        try:
+            seqrun = illumina.IlluminaSequencingData(path)
+        except Exception as e:
+            logger.debug(f'Error reading {path}: {e}')
+            continue
+        if not seqrun.path_to_samplesheet.exists():
+            sample_sheets = reports.find_samplesheets(path)
+            if len(sample_sheets) == 1:
+                seqrun.path_to_samplesheet = sample_sheets[0]
+            elif len(sample_sheets) > 1:
+                logger.debug(f'Multiple sample sheets found in {path}')
                 continue
-            if not seqrun.path_to_samplesheet.exists():
-                sample_sheets = reports.find_samplesheets(rundir)
-                if len(sample_sheets) == 1:
-                    seqrun.path_to_samplesheet = sample_sheets[0]
-                elif len(sample_sheets) > 1:
-                    logger.debug(f'Multiple sample sheets found in {rundir}')
-                    continue
-            data.append(seqrun)
+        info.append(seqrun.info)
     # The 'table' is a string.
-    table = reports.list_runs(data, long=args.long, sep=args.sep)
+    table = reports.list_runs(
+        info,
+        long=args.long,
+        transpose=args.transpose,
+        sep=args.sep
+    )
     print(table)
     return 0
 
@@ -248,6 +273,11 @@ def get_parser():
         default='\t',
         type=str,
         help='Column separator.'
+    )
+    parse_reports.add_argument(
+        '-t', '--transpose',
+        action='store_true',
+        help='Transpose the table.'
     )
 
     # ************************************************************
