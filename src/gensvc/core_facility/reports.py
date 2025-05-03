@@ -94,7 +94,7 @@ def find_seq_runs(dirname):
     return sorted(seq_runs)
 
 
-def list_runs(seqruns, long=False, sep='\t', as_dataframe=False):
+def list_runs(data, long=False, sep='\t', transpose=False, as_dataframe=False):
     '''
     List sequencing runs in `dirpath`.
 
@@ -107,15 +107,22 @@ def list_runs(seqruns, long=False, sep='\t', as_dataframe=False):
     no "projects" and this causes the columns to be misaligned. I thought
     adding 'na_rep="-"' would fix this, but it doesn't seem to work.
     '''
-    data = [seqrun.info for seqrun in seqruns]
+    index = False
+    header = True
+    # data = [seqrun.info for seqrun in seqruns]
     table = pd.DataFrame(data)
     if 'projects' in table:
         table = table.explode(column='projects')
 
+    if transpose:
+        table = table.T
+        index = True
+        header = False
+
     if as_dataframe:
         return table
     else:
-        return table.to_csv(index=None, sep=sep, na_rep='-')
+        return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
 
 
 # END
