@@ -65,7 +65,6 @@ def run_list(args):
     - A sequencing run directory.
     - A sample sheet.
     '''
-    # print(args)
     sample_sheets = []
     run_dirs = []
     info = []
@@ -74,11 +73,11 @@ def run_list(args):
             sys.tracebacklimit = 0
             raise FileNotFoundError(f'Path does not exist: {path}')
         if illumina.looks_like_samplesheet(path):
-            print(f'Found sample sheet: {path}')
+            logger.debug(f'Found sample sheet: {path}')
             sample_sheets.append(path)
         elif os.path.isdir(path):
             if illumina.is_runid(os.path.basename(path)):
-                print(f'Found runid: {path}')
+                logger.debug(f'Found runid: {path}')
                 run_dirs.append(path)
             else:
                 for rundir in reports.find_seq_runs(path):
@@ -385,7 +384,6 @@ def get_parser():
 def main():
 
     args = get_parser().parse_args()
-    # print(args)
 
     # Initialize logging.
     logging.basicConfig(
