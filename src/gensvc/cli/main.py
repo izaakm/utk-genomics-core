@@ -59,11 +59,16 @@ def cli_sample_sheet(args):
 
 def run_list(args):
     '''
+    List info for sequencing runs or sample sheets. Possible inputs:
+
+    - A directory containing sequencing runs.
+    - A sequencing run directory.
+    - A sample sheet.
     '''
     # print(args)
-    seqruns = []
-    for dirpath in args.path:
-        for rundir in reports.find_seq_runs(dirpath):
+    data = []
+    for path in args.pathlist:
+        for rundir in reports.find_seq_runs(path):
             try:
                 seqrun = illumina.IlluminaSequencingData(rundir)
             except Exception as e:
@@ -76,9 +81,9 @@ def run_list(args):
                 elif len(sample_sheets) > 1:
                     logger.debug(f'Multiple sample sheets found in {rundir}')
                     continue
-            seqruns.append(seqrun)
+            data.append(seqrun)
     # The 'table' is a string.
-    table = reports.list_runs(seqruns, long=args.long, sep=args.sep)
+    table = reports.list_runs(data, long=args.long, sep=args.sep)
     print(table)
     return 0
 
@@ -223,7 +228,7 @@ def get_parser():
     )
     parse_reports.set_defaults(func=run_list)
     parse_reports.add_argument(
-        'path',  
+        'pathlist',  
         default=[
             config.GENSVC_ISEQ_DATADIR,
             config.GENSVC_NEXTSEQ_DATADIR,
