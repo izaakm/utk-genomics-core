@@ -70,6 +70,9 @@ def run_list(args):
     run_dirs = []
     info = []
     for path in args.pathlist:
+        if not os.path.exists(path):
+            sys.tracebacklimit = 0
+            raise FileNotFoundError(f'Path does not exist: {path}')
         if illumina.looks_like_samplesheet(path):
             print(f'Found sample sheet: {path}')
             sample_sheets.append(path)
