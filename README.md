@@ -12,6 +12,8 @@ This repo contains a set of scripts for processing sequencing results from the I
 Data Directory structure
 ------------------------
 
+[TODO] Update this
+
     gensvc/
         MiSeqRuns/                 # raw data directory
             <RUN_DIR>/
@@ -49,6 +51,23 @@ option:
 ```
 <script> -h
 ```
+
+
+Roadmap
+-------
+
+- [ ] [#1][] list all sequencing runs and current "status", which can be:
+    - copy: complete
+    - BCL Convert: {submitted,inprogress,complete}
+    - transfer: complete
+    - email confirmation: complete
+    - `status` is prob part of the `core_facility` module and is completely
+      separate from the `data.illumina` module because knowing the 'status' of
+      a run depends on the data structure that the core facility uses
+- [ ] [#2][] map user info to run
+- [ ] [#3][] add `README` to transfer directories
+- [ ] [#4][] create templates (jinja?) for per-run, per-project scripts (e.g., fastqc)
+- [ ] [#5] ...
 
 
 <!-- END -->
