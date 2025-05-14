@@ -8,7 +8,7 @@ CONDA_ENV_NAME := $(shell grep '^\s*name:' environment.yml | awk '{print $$2}')
 # $(info CODEBOOKS_SRC: $(CODEBOOKS_SRC))
 # $(info CODEBOOKS_DST: $(CODEBOOKS_DST))
 
-.PHONY: all tags init install uninstall clean
+.PHONY: all tags init install uninstall clean j
 
 all: tags
 
@@ -40,3 +40,7 @@ uninstall:
 
 clean:
 	rm -rf bin/
+
+j:
+	/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=$(JUPYTER_WORKSPACE)
+
