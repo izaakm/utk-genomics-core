@@ -122,7 +122,8 @@ def list_runs(data, long=False, sep='\t', transpose=False, as_dataframe=False):
     if as_dataframe:
         return table
     else:
-        return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
+        # return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
+        return table.to_string(index=index, header=header, na_rep='-')
 
 
 # END
