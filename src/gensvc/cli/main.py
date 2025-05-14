@@ -90,6 +90,7 @@ def run_list(args):
         except Exception as e:
             logger.debug(f'Error reading {path}: {e}')
             continue
+
     for path in run_dirs:
         try:
             seqrun = illumina.IlluminaSequencingData(path)
