@@ -408,7 +408,7 @@ class BaseSampleSheet:
         [TODO] Rename: just use `projects` instead.
         '''
         if self._sample_project is None:
-            self._sample_project = sorted(set(self.Data.data['Sample_Project']))
+            self._sample_project = sorted(set(self.Data.data.get('Sample_Project', [])))
         return self._sample_project
 
     projects = sample_project
