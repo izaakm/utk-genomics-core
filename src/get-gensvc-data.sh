@@ -129,7 +129,6 @@ include_files() {
 #     "jmill165@dtn1.isaac.utk.edu:${utk0192_data}/" "${local_data}/"
 
 run rsync \
-    --dry-run \
     -au \
     -vv \
     --no-owner \
@@ -148,9 +147,5 @@ run rsync \
     --exclude='Thumbnail_Images' \
     --delete-excluded \
     "jmill165@dtn1.isaac.utk.edu:${utk0192_data}/" "${local_data}/"
-
-
-
-
 
 exit 0
