@@ -4,9 +4,10 @@
 *.svg
 
 bin/
+codebooks/
 logs/
 notebooks/
-codebooks/
+tests/
 
 *tmp*
 
