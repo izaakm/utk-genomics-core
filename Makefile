@@ -8,11 +8,10 @@ CONDA_ENV_NAME := $(shell grep '^\s*name:' environment.yml | awk '{print $$2}')
 # $(info CODEBOOKS_SRC: $(CODEBOOKS_SRC))
 # $(info CODEBOOKS_DST: $(CODEBOOKS_DST))
 
-.PHONY: all tags init install uninstall clean j
+.PHONY: all tags init install uninstall j codebooks testdata clean
 
 all: tags
 
-.PHONY: codebooks
 codebooks: | $(CODEBOOKS_DST)
 codebooks/%: $(CODEBOOKS_HOME)/%
 	mkdir -p codebooks
@@ -38,9 +37,26 @@ install:
 uninstall:
 	conda env remove -n $(CONDA_ENV_NAME)
 
-clean:
-	rm -rf bin/
-
 j:
 	/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=$(JUPYTER_WORKSPACE)
 
+
+# ************************************************************
+# Tests
+# ************************************************************
+
+TESTS_DIR := tests
+TEST_DATA := $(TESTS_DIR)/_data
+
+testdata: $(TEST_DATA)/Illumina $(TEST_DATA)/processed $(TEST_DATA)/globus
+$(TEST_DATA)/%:
+	@mkdir -p $(@D)
+	python src/gensvc/testing/make_test_data.py $(*) $(@D)
+
+
+# ************************************************************
+# Clean up
+# ************************************************************
+
+clean:
+	rm -rf $(TEST_DATA)
