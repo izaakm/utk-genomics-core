@@ -2,6 +2,7 @@
 !.gitignore
 *.out
 *.svg
+*.bak
 
 bin/
 codebooks/
