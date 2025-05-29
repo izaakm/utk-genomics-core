@@ -94,7 +94,7 @@ def find_seq_runs(dirname):
     return sorted(seq_runs)
 
 
-def list_runs(data, long=False, sep='\t', transpose=False, as_dataframe=False):
+def list_runs(data, long=False, sep=None, transpose=False, as_dataframe=False):
     '''
     List sequencing runs in `dirpath`.
 
@@ -121,9 +121,10 @@ def list_runs(data, long=False, sep='\t', transpose=False, as_dataframe=False):
 
     if as_dataframe:
         return table
-    else:
-        # return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
+    elif sep is None:
         return table.to_string(index=index, header=header, na_rep='-')
+    else:
+        return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
 
 
 # END
