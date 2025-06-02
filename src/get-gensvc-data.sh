@@ -56,7 +56,8 @@ dorsync() {
 
     run mkdir -p "${dstdir}"
     run rsync \
-        -auv \
+        -au \
+        -vv \
         --no-owner \
         --no-perms \
         --exclude='.git' \
