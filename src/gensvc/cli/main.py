@@ -45,7 +45,7 @@ def cli_sample_sheet(args):
 
     if args.src_sample_sheet:
         sample_sheet = illumina.read_sample_sheet(args.src_sample_sheet)
-    elif args.format == 'V1':
+    elif args.format == 'v1':
         sample_sheet = illumina.SampleSheetv1()
     else:
         sample_sheet = illumina.SampleSheetv2()
@@ -58,12 +58,15 @@ def cli_sample_sheet(args):
                 sample_sheet.Data.data,
                 project_col='Sample_Project'
             )
-        else:
+        elif sample_sheet.format == 'v2' and sample_sheet.Cloud_Data.data.get('ProjectName') is not None:
             # Only v2 sample sheets have 'Cloud_Data'.
             mapper = illumina.get_sample_project(
                 sample_sheet.Cloud_Data.data,
                 project_col='ProjectName'
             )
+        else:
+            sys.tracebacklimit = 0
+            raise ValueError('Sample sheet does not have a "Sample_Project" or "ProjectName" column.')
 
         # Add the suffix to the project names.
         mapper = { k: f'{v}_{args.project_suffix}' for k, v in mapper.items() }
@@ -76,7 +79,7 @@ def cli_sample_sheet(args):
                 project_col='Sample_Project',
             )
 
-        if sample_sheet.Cloud_Data.data.get('ProjectName') is not None:
+        if sample_sheet.format == 'v2' and sample_sheet.Cloud_Data.data.get('ProjectName') is not None:
             illumina.set_sample_project(
                 sample_sheet.Cloud_Data.data,
                 mapper,
@@ -85,6 +88,9 @@ def cli_sample_sheet(args):
             )
 
     if args.projectname_to_sampleproject:
+        if sample_sheet.format == 'v1':
+            sys.tracebacklimit = 0
+            raise ValueError('Project name to sample project mapping is only valid for v2 sample sheets.')
         # Only valid for V2 sample sheets.
         sample_sheet.projectname_to_sampleproject()
 
@@ -226,8 +232,8 @@ def get_parser():
     parse_sample_sheet.set_defaults(func=cli_sample_sheet)
     parse_sample_sheet.add_argument(
         '--format', '-F',
-        choices=['V1', 'V2'],
-        default='V2',
+        choices=['v1', 'v2'],
+        default='v2',
         help='Sample sheet format.'
     )
     parse_sample_sheet.add_argument(
