@@ -333,6 +333,7 @@ class BaseSampleSheet:
         self._info = None
         self._sample_project = None
         self._is_split_lane = None
+        self._format = None
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.path}")'
@@ -346,6 +347,10 @@ class BaseSampleSheet:
         return int(self.Header.data.get('FileFormatVersion', 1))
 
     version = FileFormatVersion
+
+    @property
+    def format(self):
+        return self._format
 
     @property
     def path(self):
@@ -447,15 +452,9 @@ class SampleSheetv1(BaseSampleSheet):
             {'Header': [], 'Reads': [], 'Settings': [], 'Data': []}
         )
         super().__init__(*args, **kwargs)
-        # Set these *before* the property in _sections.
+        self._format = 'v1'
         self._settings = None
         self._data = None
-        # self._sections = [
-        #     self.Header,
-        #     self.Reads,
-        #     self.Settings,
-        #     self.Data,
-        # ]
 
     @property
     def sections(self):
@@ -504,18 +503,11 @@ class SampleSheetv2(BaseSampleSheet):
             {'Header': [], 'Reads': [], 'BCLConvert_Settings': [], 'BCLConvert_Data': [], 'Cloud_Settings': [], 'Cloud_Data': []}
         )
         super().__init__(*args, **kwargs)
+        self._format = 'v2'
         self._bclconvert_settings = None
         self._bclconvert_data = None
         self._cloud_settings = None
         self._cloud_data = None
-        # self._sections = [
-        #     self.Header,
-        #     self.Reads,
-        #     self.BCLConvert_Settings,
-        #     self.BCLConvert_Data,
-        #     self.Cloud_Settings,
-        #     self.Cloud_Data,
-        # ]
 
     @property
     def sections(self):
