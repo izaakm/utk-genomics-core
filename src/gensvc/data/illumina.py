@@ -194,7 +194,7 @@ def get_sample_project(df, samples_col="Sample_ID", project_col="Sample_Project"
     return df.set_index(samples_col)[project_col].to_dict()
 
 
-def set_sample_project(df, mapper, samples_col='Sample_ID'):
+def set_sample_project(df, mapper, samples_col='Sample_ID', project_col='Sample_Project'):
     '''
     Set the Sample_Project column in the sample sheet data (in place).
 
@@ -223,7 +223,7 @@ def set_sample_project(df, mapper, samples_col='Sample_ID'):
     >>>     mapper
     >>> )
     '''
-    df['Sample_Project'] = df[samples_col].map(mapper)
+    df[project_col] = df[samples_col].map(mapper)
     return None
 
 
@@ -599,8 +599,8 @@ class SampleSheetv2(BaseSampleSheet):
 
     def projectname_to_sampleproject(self):
         '''
-        Convert the ProjectName column in the Cloud_Data section to Sample_Project
-        in the BCLConvert_Data section.
+        Convert the `ProjectName` column in the `Cloud_Data` section to
+        `Sample_Project` in the `BCLConvert_Data` section.
 
         Returns
         -------
