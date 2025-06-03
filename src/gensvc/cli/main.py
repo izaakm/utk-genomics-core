@@ -50,6 +50,40 @@ def cli_sample_sheet(args):
     else:
         sample_sheet = illumina.SampleSheetv2()
 
+    if args.project_suffix:
+        if sample_sheet.Data.data.get('Sample_Project') is not None:
+            # v1 sample sheets only have the 'Data' section. For v2 sample
+            # sheets, 'Data' is aliased to 'BCLConvert_Data'.
+            mapper = illumina.get_sample_project(
+                sample_sheet.Data.data,
+                project_col='Sample_Project'
+            )
+        else:
+            # Only v2 sample sheets have 'Cloud_Data'.
+            mapper = illumina.get_sample_project(
+                sample_sheet.Cloud_Data.data,
+                project_col='ProjectName'
+            )
+
+        # Add the suffix to the project names.
+        mapper = { k: f'{v}_{args.project_suffix}' for k, v in mapper.items() }
+
+        if sample_sheet.Data.data.get('Sample_Project') is not None:
+            illumina.set_sample_project(
+                sample_sheet.Data.data,
+                mapper,
+                samples_col='Sample_ID',
+                project_col='Sample_Project',
+            )
+
+        if sample_sheet.Cloud_Data.data.get('ProjectName') is not None:
+            illumina.set_sample_project(
+                sample_sheet.Cloud_Data.data,
+                mapper,
+                samples_col='Sample_ID',
+                project_col='ProjectName',
+            )
+
     if args.projectname_to_sampleproject:
         # Only valid for V2 sample sheets.
         sample_sheet.projectname_to_sampleproject()
@@ -209,6 +243,12 @@ def get_parser():
         action='store_true',
         default=False,
         help='Map the "ProjectName" from "Cloud_Data" to "Sample_Project" in "BCLConvert_Data".'
+    )
+    parse_sample_sheet.add_argument(
+        '--project-suffix', '-s',
+        action='store',
+        type=str,
+        help=''
     )
 
     # ************************************************************
