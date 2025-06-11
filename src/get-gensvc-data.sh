@@ -145,6 +145,7 @@ run rsync \
     --exclude='*.incomplete' \
     --exclude='Firmware' \
     --exclude='Thumbnail_Images' \
+    --exclude='work' \
     --delete-excluded \
     "jmill165@dtn1.isaac.utk.edu:${utk0192_data}/" "${local_data}/"
 
