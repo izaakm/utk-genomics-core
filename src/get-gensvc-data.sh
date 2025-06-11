@@ -7,10 +7,9 @@ set -o pipefail
 
 declare logfile="logs/$(basename -s .sh "$0")-$(date +%s).log"
 
-# Redirect stdout and stderr to the logfile.
+# Tee stdout and stderr to the logfile.
 mkdir -p logs
-exec 1>>"$logfile"
-exec 2>>"$logfile"
+exec > >(tee -a "${logfile}") 2>&1
 
 declare dry_run=${DRY_RUN:-true}
 
