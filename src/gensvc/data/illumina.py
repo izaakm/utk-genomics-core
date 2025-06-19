@@ -117,6 +117,10 @@ def read_sample_sheet(path, version='infer'):
         raise ValueError(f'`version` must be `1` or `2`, you gave "{version}"')
 
 
+def parse_list_section(lines, name=None):
+    data = [line.strip('').rstrip(',') for line in lines if line.strip()]
+    return ListSection(data, name=name)
+
 def parse_dict_section(lines, name=None):
     data = {}
     for line in lines:
@@ -266,6 +270,40 @@ def get_duplicate_indexes(df, index1_col='index', index2_col='index2', use_lane=
     if sort:
         dupes = dupes.sort_values(cols)
     return dupes
+
+
+class ListSection:
+    def __init__(self, data, name=None):
+        '''
+        data : list
+        '''
+        self._data = data
+        self._name = name
+
+    def __repr__(self):
+        return f'{self.name}({self.data.__repr__()})'
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if not isinstance(value, list):
+            raise ValueError('Data must be a list')
+        self._data = value
+
+    @property
+    def name(self):
+        return self._name
+
+    def to_csv(self, *args, file=None, **kwargs):
+        text = f'[{self.name}]\n'
+        text += '\n'.join(self.data) + '\n'
+        if file is None:
+            return text
+        else:
+            print(text, file=file)
 
 
 class DictSection:
@@ -438,15 +476,6 @@ class BaseSampleSheet:
             self._header = parse_dict_section(self.content[name], name=name)
         return self._header
 
-    @property
-    def Reads(self):
-        '''
-        [TODO] Consider moving fxn into class as method.
-        '''
-        if not self._reads:
-            name = 'Reads'
-            self._reads = parse_dict_section(self.content[name], name=name)
-        return self._reads
 
     @property
     def sample_project(self):
@@ -582,6 +611,16 @@ class SampleSheetv1(BaseSampleSheet):
         ]
 
     @property
+    def Reads(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._reads:
+            name = 'Reads'
+            self._reads = parse_list_section(self.content[name], name=name)
+        return self._reads
+
+    @property
     def Settings(self):
         '''
         [TODO] Consider moving fxn into class as method.
@@ -637,6 +676,16 @@ class SampleSheetv2(BaseSampleSheet):
             self.Cloud_Settings,
             self.Cloud_Data,
         ]
+
+    @property
+    def Reads(self):
+        '''
+        [TODO] Consider moving fxn into class as method.
+        '''
+        if not self._reads:
+            name = 'Reads'
+            self._reads = parse_dict_section(self.content[name], name=name)
+        return self._reads
 
     @property
     def BCLConvert_Settings(self):
