@@ -286,6 +286,12 @@ class DictSection:
     def data(self):
         return self._data
 
+    @data.setter
+    def data(self, value):
+        if not isinstance(value, dict):
+            raise ValueError('Data must be a dictionary')
+        self._data = value
+
     @property
     def name(self):
         return self._name
