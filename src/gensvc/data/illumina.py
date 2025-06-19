@@ -331,6 +331,14 @@ class TableSection:
     def data(self):
         return self._data
 
+    @data.setter
+    def data(self, value):
+        if not isinstance(value, pd.DataFrame):
+            raise ValueError('Data must be a pandas DataFrame')
+        if not value.index.is_unique:
+            raise ValueError('Index must be unique')
+        self._data = value
+
     @property
     def name(self):
         return self._name
