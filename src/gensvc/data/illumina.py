@@ -15,13 +15,13 @@
 
 import csv
 import hashlib
+import logging
 import os
 import pandas as pd
 import pathlib
 import re
 import sys
 import warnings
-import logging
 
 from io import StringIO
 from datetime import datetime
@@ -244,6 +244,30 @@ def verify_sample_project(df, project_col='Sample_Project'):
     return True
 
 
+def get_duplicate_indexes(df, index1_col='index', index2_col='index2', use_lane=True, sort=True):
+    '''
+    Get samples with duplicate indexes.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The sample data.
+    index1_col, index2_col : str
+        The column names for the index1 and index2 columns.
+    use_lane : bool
+        Whether to include the Lane column in the duplicate check.
+    '''
+    if use_lane and 'Lane' in df.columns:
+        cols = ['Lane', index1_col, index2_col]
+    else:
+        cols = [index1_col, index2_col]
+    mask = df.duplicated(subset=cols, keep=False)
+    dupes = df.loc[mask].copy()
+    if sort:
+        dupes = dupes.sort_values(cols)
+    return dupes
+
+
 class DictSection:
     def __init__(self, data, name=None):
         '''
@@ -334,6 +358,9 @@ class BaseSampleSheet:
         self._sample_project = None
         self._is_split_lane = None
         self._format = None
+        # Data sections
+        self._index1_col = None
+        self._index2_col = None
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.path}")'
@@ -435,6 +462,25 @@ class BaseSampleSheet:
             UserWarning
         )
 
+    def duplicate_indexes(self, use_lane=True, sort=True):
+        '''
+        Check for duplicate indexes in the sample sheet data.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame containing the rows with duplicate indexes. The
+            DataFrame is sorted by the lane, index1, and index2 columns.
+        '''
+        dupes = get_duplicate_indexes(
+            self.Data.data,
+            self._index1_col,
+            self._index2_col,
+            use_lane=use_lane,
+            sort=sort
+        )
+        return dupes
+
     def to_csv(self, *args, file=None, **kwargs):
         text = ''
         for section in self.sections:
@@ -455,6 +501,8 @@ class SampleSheetv1(BaseSampleSheet):
         self._format = 'v1'
         self._settings = None
         self._data = None
+        self._index1_col = 'index'
+        self._index2_col = 'index2'
 
     @property
     def sections(self):
@@ -506,6 +554,8 @@ class SampleSheetv2(BaseSampleSheet):
         self._format = 'v2'
         self._bclconvert_settings = None
         self._bclconvert_data = None
+        self._index1_col = 'Index'
+        self._index2_col = 'Index2'
         self._cloud_settings = None
         self._cloud_data = None
 
