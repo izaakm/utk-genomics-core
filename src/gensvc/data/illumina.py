@@ -118,7 +118,11 @@ def read_sample_sheet(path, version='infer'):
 
 
 def parse_list_section(lines, name=None):
-    data = [line.strip('').rstrip(',') for line in lines if line.strip()]
+    data = []
+    for line in lines:
+        if line.strip(' ,'):
+            # Remove whitespace and trailing commas.
+            data.append(line.strip().rstrip(','))
     return ListSection(data, name=name)
 
 def parse_dict_section(lines, name=None):
@@ -299,7 +303,7 @@ class ListSection:
 
     def to_csv(self, *args, file=None, **kwargs):
         text = f'[{self.name}]\n'
-        text += '\n'.join(self.data) + '\n'
+        text += '\n'.join(self.data) + '\n\n'
         if file is None:
             return text
         else:
