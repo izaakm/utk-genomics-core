@@ -495,6 +495,60 @@ class BaseSampleSheet:
         )
         return dupes
 
+    def merge_duplicate_indexes(self, use_lane=True, drop=True):
+        if use_lane and 'Lane' in self.Data.data.columns:
+            groupby_cols = ['Lane', self._index1_col, self._index2_col]
+        else:
+            groupby_cols = [self._index1_col, self._index2_col]
+        is_dupe = self.Data.data.duplicated(subset=groupby_cols, keep=False)
+        dupes = self.Data.data.loc[is_dupe]
+
+        records = []
+        for name, grp in dupes.groupby(groupby_cols):
+            # Get the unique group values from the 'name'.
+            if len(name) == 3:
+                lane, index1, index2 = name
+            elif len(name) == 2:
+                index1, index2 = name
+                lane = None
+            else:
+                raise ValueError(f'Groupby should have 2 or 3 items: `([lane,] index1, index2)`')
+            rec = {}
+            for col in grp.columns:
+                if col == 'Lane' and lane:
+                    # [TODO] Duplicate indexes **across lanes** (vs within lanes) ???
+                    rec[col] = lane
+                elif col == 'Sample_ID':
+                    rec[col] = f'DUPLICATE_INDEX_{index1}_{index2}'
+                elif col == 'Sample_Name':
+                    rec[col] = f'DUPLICATE_INDEX_{index1}_{index2}'
+                elif col == 'Sample_Project':
+                    rec[col] = 'DUPLICATE_INDEXES'
+                elif col in ['index', 'Index', 'I7_Index_ID']:
+                    rec[col] = index1
+                elif col in ['index2', 'Index2', 'I5_Index_ID']:
+                    rec[col] = index2
+            records.append(rec)
+
+        if drop:
+            orig = self.Data.data.loc[~is_dupe].copy()
+        else:
+            orig = self.Data.data.copy()
+        
+        if not records:
+            logger.warning('The `merge_duplicate_indexes` function found 0 duplicate indexes.')
+            new = orig
+        else:
+            new = pd.concat(
+                [orig, pd.DataFrame(records)],
+                ignore_index=True
+            )
+
+        # print(new)
+
+        self.Data.data = new
+        return None
+
     def to_csv(self, *args, file=None, **kwargs):
         text = ''
         for section in self.sections:
