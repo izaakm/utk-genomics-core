@@ -50,6 +50,16 @@ def cli_sample_sheet(args):
     else:
         sample_sheet = illumina.SampleSheetv2()
 
+    if args.check_duplicate_indexes:
+        dupes = sample_sheet.duplicate_indexes()
+        if dupes.empty:
+            logger.info('No duplicate indexes found.')
+        else:
+            logger.info('Duplicate indexes found:')
+            print(dupes.to_csv(index=False, sep='\t'))
+            sys.tracebacklimit = 0
+            raise ValueError('Duplicate indexes found in sample sheet.')
+
     if args.project_suffix:
         if sample_sheet.Data.data.get('Sample_Project') is not None:
             # v1 sample sheets only have the 'Data' section. For v2 sample
@@ -255,6 +265,12 @@ def get_parser():
         action='store',
         type=str,
         help=''
+    )
+    parse_sample_sheet.add_argument(
+        '--check-duplicate-indexes', '-i',
+        action='store_true',
+        default=False,
+        help='Check for duplicate indexes in the sample sheet.'
     )
 
     # ************************************************************
