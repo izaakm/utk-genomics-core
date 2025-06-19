@@ -104,6 +104,9 @@ def cli_sample_sheet(args):
         # Only valid for V2 sample sheets.
         sample_sheet.projectname_to_sampleproject()
 
+    if args.merge_duplicate_indexes:
+        sample_sheet.merge_duplicate_indexes()
+
     print(sample_sheet.to_csv())
 
 
@@ -271,6 +274,12 @@ def get_parser():
         action='store_true',
         default=False,
         help='Check for duplicate indexes in the sample sheet.'
+    )
+    parse_sample_sheet.add_argument(
+        '--merge-duplicate-indexes', '-m',
+        action='store_true',
+        default=False,
+        help='Merge samples with duplicate indexes into a single dummy sample.'
     )
 
     # ************************************************************
