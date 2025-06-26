@@ -38,7 +38,7 @@ uninstall:
 	conda env remove -n $(CONDA_ENV_NAME)
 
 j:
-	/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=$(JUPYTER_WORKSPACE)
+	test -n "$(JUPYTER_WORKSPACE)" && /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=$(JUPYTER_WORKSPACE)
 
 
 # ************************************************************
