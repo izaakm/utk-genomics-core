@@ -28,6 +28,10 @@ from datetime import datetime
 from gensvc.misc import utils
 from gensvc.data import base
 
+# Hamming distances
+from scipy.spatial import distance
+# from sklearn.metrics import pairwise_distances
+from Bio.Seq import Seq
 
 _instrument_id ={
     'FS10003266': 'iSeq',
@@ -274,6 +278,34 @@ def get_duplicate_indexes(df, index1_col='index', index2_col='index2', use_lane=
     if sort:
         dupes = dupes.sort_values(cols)
     return dupes
+
+
+def hamming(u, v):
+    '''
+
+    Examples
+    --------
+    >>> s1 = "GAGCCTACTAACGGGAT"
+    >>> s2 = "CATCGTAATGACGGCCT"
+    >>> hamming(s1, s2)
+    7
+    '''
+    if len(u) == len(v):
+        return round(
+            distance.hamming(list(u), list(v)) * len(u)
+        )
+    else:
+        raise ValueError('Sequences are not the same length.')
+
+
+def pairwise_hamming_distance(U, V):
+    d = []
+    for u, v in itertools.product(U, V):
+        d.append({'u': u, 'v': v, 'hamming': hamming(u, v)})
+        # I think you only need to check the reverse complement of one of the sequences.
+        d.append({'u': u, 'v': v, 'hamming': hamming(u.reverse_complement(), v), 'reverse_complement': 0})
+        d.append({'u': u, 'v': v, 'hamming': hamming(u, v.reverse_complement()), 'reverse_complement': 1})
+    return d
 
 
 class ListSection:
@@ -527,6 +559,11 @@ class BaseSampleSheet:
             sort=sort
         )
         return dupes
+
+    def hamming_distances(self):
+        U = [Seq(u) for u in self.Data.data[self._index1_col]]
+        V = [Seq(v) for v in self.Data.data[self._index2_col]]
+        return pairwise_hamming_distance(U, V)
 
     def merge_duplicate_indexes(self, use_lane=True, drop=True):
         if use_lane and 'Lane' in self.Data.data.columns:
