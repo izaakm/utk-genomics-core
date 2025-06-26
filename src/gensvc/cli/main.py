@@ -60,6 +60,37 @@ def cli_sample_sheet(args):
             sys.tracebacklimit = 0
             raise ValueError('Duplicate indexes found in sample sheet.')
 
+    if args.check_hamming_distances:
+        # If the allowed "barcode mismatches" is 1, then the minimum hamming distance is 2, etc.
+        if args.min_hamming_distance:
+            min_hamming_distance = args.min_hamming_distance
+        elif args.barcode_mismatches:
+            min_hamming_distance = args.barcode_mismatches + 1
+        else:
+            raise ValueError('You must provide either --min-hamming-distance or --barcode-mismatches.')
+        dlist = sample_sheet.hamming_distances()
+        for item in dlist:
+            if item['hamming'] < min_hamming_distance:
+                pass
+                # ---
+                # [TODO] Add 'filter_indexes' method to SampleSheet class.
+                # Takes and `index` and optional `index2` argument and return
+                # samples (rows) with matching index.
+                # >>> def filter_indexes(self, indexes, which='both', as_mask=False):
+                # >>>     # indexes is a list of indexes to check.
+                # >>>     if which == 'both':
+                # >>>         <check passed indexes against both 'index' and 'index2' in the data>
+                # >>>     elif which == 'index1':
+                # >>>         <only check against index1>
+                # >>>     elif which == 'index2':
+                # >>>         <only check against index2>
+                # ---
+                # match_index1 = df['index'] == str(item['u'])
+                # match_index2 = df['index2'] == str(item['v'])
+                # print(f'{item["u"]} vs {item["v"]} hamming={item["hamming"]} (rc: {item.get("reverse_complement", None)})')
+                # print(df[match_index1 | match_index2])
+                # print()
+
     if args.project_suffix:
         if sample_sheet.Data.data.get('Sample_Project') is not None:
             # v1 sample sheets only have the 'Data' section. For v2 sample
@@ -280,6 +311,30 @@ def get_parser():
         action='store_true',
         default=False,
         help='Merge samples with duplicate indexes into a single dummy sample.'
+    )
+    parse_sample_sheet.add_argument(
+        '--check-hamming-distances',
+        action='store_true',
+        default=False,
+        help='Check pairwise Hamming distances between sample indexes. Requires either --barcode-mismatches or --min-hamming-distance to be set.'
+    )
+    parse_sample_sheet.add_argument(
+        '--barcode-mismatches',
+        action='store',
+        type=int,
+        default=None,
+        help='Number of allowed barcode (index) mismatches.'
+    )
+    parse_sample_sheet.add_argument(
+        '--min-hamming-distance',
+        action='store',
+        type=int,
+        default=None,
+        help=(
+            'Minimum Hamming distance between sample barcodes (indexes). '
+            'If not provided, is set to --barcode-mismatches+1. '
+            'If provided, --barcode-mismatches will be ignored.'
+        )
     )
 
     # ************************************************************
