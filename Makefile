@@ -10,15 +10,25 @@ CONDA_ENV_NAME := $(shell grep '^\s*name:' environment.yml | awk '{print $$2}')
 
 .PHONY: all tags init install uninstall j codebooks testdata clean
 
-all: tags
+usage:
+	@echo "Usage: make [target]"
+	@echo "Available targets:"
+	@echo "  tags         # Generate tags for the source code"
+	@echo "  codebooks    # Create symbolic links to codebooks in the current directory"
+	@echo "  init         # Create .env and .work files for environment setup"
+	@echo "  install      # Install the conda environment and Python package"
+	@echo "  uninstall    # Remove the conda environment"
+	@echo "  j            # Open Jupyter workspace in Chrome"
+	@echo "  testdata     # Generate test data for unit tests"
+	@echo "  clean        # Clean up test data"
+
+tags:
+	ctags -R src
 
 codebooks: | $(CODEBOOKS_DST)
 codebooks/%: $(CODEBOOKS_HOME)/%
 	mkdir -p codebooks
 	ln -s $< $@
-
-tags:
-	ctags -R src
 
 init: .env .work
 
