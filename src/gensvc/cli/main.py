@@ -69,9 +69,12 @@ def cli_sample_sheet(args):
         else:
             raise ValueError('You must provide either --min-hamming-distance or --barcode-mismatches.')
         dlist = sample_sheet.hamming_distances()
+        insufficient_hamming_distance = False
         for item in dlist:
+            # item is a dict with keys: 'u', 'v', 'hamming', and (possibly) 'reverse_complement'
+            # u: index1, v: index2, hamming: hamming distance, reverse_complement: 0=>u, 1=>v
             if item['hamming'] < min_hamming_distance:
-                pass
+                insufficient_hamming_distance = True
                 # ---
                 # [TODO] Add 'filter_indexes' method to SampleSheet class.
                 # Takes and `index` and optional `index2` argument and return
@@ -90,6 +93,13 @@ def cli_sample_sheet(args):
                 # print(f'{item["u"]} vs {item["v"]} hamming={item["hamming"]} (rc: {item.get("reverse_complement", None)})')
                 # print(df[match_index1 | match_index2])
                 # print()
+                indexes = [item['u'], item['v']]
+                df = sample_sheet.filter_sample_indexes(indexes, which='both', as_mask=False)
+                # logger.info(f'{item["u"]} vs {item["v"]} hamming={item["hamming"]} (rc: {item.get("reverse_complement", None)})')
+                # logger.info(df.to_csv(index=False, sep='\t'))
+        if insufficient_hamming_distance:
+            logger.warning('Insufficient Hamming distance found between some indexes. See above for details.')
+            sys.exit(1)
 
     if args.project_suffix:
         if sample_sheet.Data.data.get('Sample_Project') is not None:
