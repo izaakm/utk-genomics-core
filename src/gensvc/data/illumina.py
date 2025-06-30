@@ -15,6 +15,7 @@
 
 import csv
 import hashlib
+import itertools
 import logging
 import os
 import pandas as pd
@@ -298,9 +299,13 @@ def hamming(u, v):
         raise ValueError('Sequences are not the same length.')
 
 
-def pairwise_hamming_distance(U, V):
+def pairwise_hamming_distance(U, V=None):
+    if V is None:
+        combos = itertools.combinations(U, 2)
+    else:
+        combos = itertools.product(U, V)
     d = []
-    for u, v in itertools.product(U, V):
+    for u, v in combos:
         d.append({'u': u, 'v': v, 'hamming': hamming(u, v)})
         # I think you only need to check the reverse complement of one of the sequences.
         d.append({'u': u, 'v': v, 'hamming': hamming(u.reverse_complement(), v), 'reverse_complement': 0})
@@ -541,6 +546,12 @@ class BaseSampleSheet:
             UserWarning
         )
 
+    def _verify_index1_col(self):
+        return self._index1_col in self.Data.data.columns
+
+    def _verify_index2_col(self):
+        return self._index2_col in self.Data.data.columns
+
     def duplicate_indexes(self, use_lane=True, sort=True):
         '''
         Check for duplicate indexes in the sample sheet data.
@@ -561,9 +572,46 @@ class BaseSampleSheet:
         return dupes
 
     def hamming_distances(self):
-        U = [Seq(u) for u in self.Data.data[self._index1_col]]
-        V = [Seq(v) for v in self.Data.data[self._index2_col]]
-        return pairwise_hamming_distance(U, V)
+        '''
+        Compute hamming distances between all pairs of indexes, i.e., comparing
+        every single index from both index1 and index2 to every other index
+        (NOT just comparing index1 to index2).
+        '''
+        if self._verify_index2_col():
+            indexes = set(self.Data.data[self._index1_col]) | set(self.Data.data[self._index2_col])
+        else:
+            indexes = set(self.Data.data[self._index1_col])
+        U = [Seq(u) for u in sorted(indexes)]
+        return pairwise_hamming_distance(U)
+
+    def filter_sample_indexes(self, indexes, which='both', as_mask=False):
+        '''
+        Filter the sample sheet data by indexes, return the samples that match the given `indexes`.
+
+        Note that some V2 sample sheets have only one `Index` column and no `Index2` column.
+        '''
+        if which == 'both':
+            if self._verify_index2_col():
+                mask_index1 = self.Data.data[self._index1_col].isin(indexes)
+                mask_index2 = self.Data.data[self._index2_col].isin(indexes)
+                mask = mask_index1 | mask_index2
+            else:
+                logger.warning('`index2` column not found, filtering only by `index1`.')
+                mask = self.Data.data[self._index1_col].isin(indexes)
+        elif which == 'index1':
+            mask = self.Data.data[self._index1_col].isin(indexes)
+        elif which == 'index2':
+            if self._verify_index2_col():
+                mask = self.Data.data[self._index2_col].isin(indexes)
+            else:
+                raise ValueError('`index2` column not found, cannot filter by `index2`.')
+        else:
+            raise ValueError(f'`which` must be "both", "index1", or "index2", you gave "{which}"')
+
+        if as_mask:
+            return mask
+        else:
+            return self.Data.data.loc[mask].copy()
 
     def merge_duplicate_indexes(self, use_lane=True, drop=True):
         if use_lane and 'Lane' in self.Data.data.columns:
