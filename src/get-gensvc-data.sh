@@ -133,16 +133,19 @@ run rsync \
     -vv \
     --no-owner \
     --no-perms \
+    --exclude='*.archive*' \
+    --exclude='*.bcl' \
+    --exclude='*.bin' \
+    --exclude='*.cbcl' \
+    --exclude='*.fastq.gz' \
+    --exclude='*.filter' \
+    --exclude='*.imf1' \
+    --exclude='*.incomplete' \
+    --exclude='*.inprogress*' \
+    --exclude='*.tar*' \
+    --exclude='*.tif' \
     --exclude='.Trash*' \
     --exclude='.git' \
-    --exclude='*.bin' \
-    --exclude='*.bcl' \
-    --exclude='*.cbcl' \
-    --exclude='*.imf1' \
-    --exclude='*.filter' \
-    --exclude='*.tif' \
-    --exclude='*.fastq.gz' \
-    --exclude='*.incomplete' \
     --exclude='Firmware' \
     --exclude='Thumbnail_Images' \
     --exclude='work' \
