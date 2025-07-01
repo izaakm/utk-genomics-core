@@ -34,6 +34,7 @@ from scipy.spatial import distance
 # from sklearn.metrics import pairwise_distances
 from Bio.Seq import Seq
 
+
 _instrument_id ={
     'FS10003266': 'iSeq',
     'M04398': 'MiSeq',
@@ -54,6 +55,7 @@ regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')  # DEPRECATED
 # Sample sheet section header.
 re_section = re.compile(r'^\[\s*(\w+)\s*]')
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +66,7 @@ def is_runid(runid):
         return True
     else:
         return False
+
 
 def parse_sample_sheet(path):
     '''
@@ -129,6 +132,7 @@ def parse_list_section(lines, name=None):
             # Remove whitespace and trailing commas.
             data.append(line.strip().rstrip(','))
     return ListSection(data, name=name)
+
 
 def parse_dict_section(lines, name=None):
     data = {}
@@ -299,7 +303,7 @@ def hamming(u, v):
         raise ValueError('Sequences are not the same length.')
 
 
-def pairwise_hamming_distance(U, V=None):
+def pairwise_hamming_distance(U, V=None, reverse_complement=False):
     if V is None:
         combos = itertools.combinations(U, 2)
     else:
@@ -307,9 +311,10 @@ def pairwise_hamming_distance(U, V=None):
     d = []
     for u, v in combos:
         d.append({'u': u, 'v': v, 'hamming': hamming(u, v)})
-        # I think you only need to check the reverse complement of one of the sequences.
-        d.append({'u': u, 'v': v, 'hamming': hamming(u.reverse_complement(), v), 'reverse_complement': 0})
-        d.append({'u': u, 'v': v, 'hamming': hamming(u, v.reverse_complement()), 'reverse_complement': 1})
+        if reverse_complement:
+            # I think you only need to check the reverse complement of one of the sequences.
+            d.append({'u': u, 'v': v, 'hamming': hamming(u.reverse_complement(), v), 'reverse_complement': 0})
+            d.append({'u': u, 'v': v, 'hamming': hamming(u, v.reverse_complement()), 'reverse_complement': 1})
     return d
 
 
@@ -517,7 +522,6 @@ class BaseSampleSheet:
             self._header = parse_dict_section(self.content[name], name=name)
         return self._header
 
-
     @property
     def sample_project(self):
         '''
@@ -571,18 +575,39 @@ class BaseSampleSheet:
         )
         return dupes
 
-    def hamming_distances(self):
+    def hamming_distances(self, use_lane=True):
         '''
         Compute hamming distances between all pairs of indexes, i.e., comparing
         every single index from both index1 and index2 to every other index
         (NOT just comparing index1 to index2).
+
+        [TODO] Also, consider that this method should calculate distances
+        between *sample* indexes, i.e., the object that it operates on should
+        be a *sample* instead of extracting indexes from the sample sheet data.
         '''
+        # --- 8< ---
+        # Calculate the hamming distances between ALL pairs of indexes, i.e.,
+        # do NOT use a 'set' which will silently drop duplicate indexes. If the
+        # sample sheet has duplicate indexes, then the hamming distance will be
+        # 0 for those pairs.
+        # if self._verify_index2_col():
+        #     # ~~indexes = set(self.Data.data[self._index1_col]) | set(self.Data.data[self._index2_col])~~
+        #     indexes = self.Data.data[self._index1_col].to_list() + self.Data.data[self._index2_col].to_list()
+        # else:
+        #     # ~~indexes = set(self.Data.data[self._index1_col])~~
+        #     indexes = self.Data.data[self._index1_col].to_list()
+        # U = [Seq(u) for u in sorted(indexes)]
+        # --- >8 ---
+        # [TODO] USE LANE !!!! This will calculate distances between all index
+        # pairs, even for samples in DIFFERENT lanes. But the indexes only need
+        # to be unique WITHIN each lane.
         if self._verify_index2_col():
-            indexes = set(self.Data.data[self._index1_col]) | set(self.Data.data[self._index2_col])
+            index_pairs = self.Data.data[self._index1_col] + '+' + self.Data.data[self._index2_col]
         else:
-            indexes = set(self.Data.data[self._index1_col])
-        U = [Seq(u) for u in sorted(indexes)]
-        return pairwise_hamming_distance(U)
+            index_pairs = self.Data.data[self._index1_col]
+        U = [Seq(u) for u in sorted(index_pairs)]
+        d = pairwise_hamming_distance(U)
+        return sorted(d, key=lambda x: x['hamming'])
 
     def filter_sample_indexes(self, indexes, which='both', as_mask=False):
         '''
