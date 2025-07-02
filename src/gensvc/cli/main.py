@@ -50,6 +50,9 @@ def cli_sample_sheet(args):
     else:
         sample_sheet = illumina.SampleSheetv2()
 
+    ############################################################
+    # Data section
+    ############################################################
     if args.check_duplicate_indexes:
         dupes = sample_sheet.duplicate_indexes()
         if dupes.empty:
@@ -147,7 +150,19 @@ def cli_sample_sheet(args):
 
     if args.merge_duplicate_indexes:
         sample_sheet.merge_duplicate_indexes()
+    
+    ############################################################
+    # Settings section
+    ############################################################
+    if args.create_fastq_for_index_reads:
+        if sample_sheet.format == 'v1':
+            sample_sheet.Settings.CreateFastqForIndexReads = 1
+        elif sample_sheet.format == 'v2':
+            sample_sheet.BCLConvert_Settings.CreateFastqForIndexReads = 1
 
+    ############################################################
+    # Print to stdout
+    ############################################################
     print(sample_sheet.to_csv())
 
 
@@ -345,6 +360,12 @@ def get_parser():
             'If not provided, is set to --barcode-mismatches+1. '
             'If provided, --barcode-mismatches will be ignored.'
         )
+    )
+    parse_sample_sheet.add_argument(
+        '--create-fastq-for-index-reads',
+        action='store_true',
+        default=False,
+        help='Create FASTQ files for index reads. This will add a dummy sample to the sample sheet.'
     )
 
     # ************************************************************
