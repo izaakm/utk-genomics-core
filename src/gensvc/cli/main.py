@@ -365,7 +365,7 @@ def get_parser():
         '--create-fastq-for-index-reads',
         action='store_true',
         default=False,
-        help='Create FASTQ files for index reads. This will add a dummy sample to the sample sheet.'
+        help='Create FASTQ files for index reads.'
     )
 
     # ************************************************************
