@@ -391,6 +391,230 @@ class DictSection:
             print(text, file=file)
 
 
+class BCLConvertSettingsSection(DictSection):
+    '''
+    Settings for BCL Convert v4.2.7. See [ref1] for details.
+
+    Attributes
+    ----------
+    SoftwareVersion : str
+        Required. The version of the software to be used to perform BCL
+        conversion on the Sample_ID's that only exist in the BCL Convert Data
+        section of the sample sheet., The version is specified using all three
+        integers included in the DRAGEN version name. For example, 1.0.0.
+        See [ref1] for details.
+
+    AdapterRead1 : str
+        Optional. The sequence of the Read 1 adapter to be masked or trimmed.
+        To trim multiple adapters, separate the sequences with a plus sign (+)
+        indicating independent adapters that must be independently assessed for
+        masking or trimming for each read. Characters must be A, C, G, or T.
+
+        A value of na (case insensitive) must be used if:
+
+        - the AdapterRead1 field is placed in the Data section of the Sample Sheet, and
+        - no adapter trimming is desired for the sample
+
+        See [ref1] for details.
+
+    AdapterRead2 : str
+
+        Optional. See description of AdapterRead1, applied to AdapterRead2.
+
+        See [ref1] for details.
+
+    BarcodeMismatchesIndex1 : int, NA
+
+        Optional. Specifies barcode mismatch tolerance for Index 1. Possible
+        values are 0, 1, or 2, or na. The default value is 1. Only allowed if
+        Index is specified in RunInfo.xml file and in the Reads section of the
+        Sample Sheet.
+
+        A value of na must be used if:
+
+        - BarcodeMismatchesIndex1 exists in the Data section of the Sample Sheet, and
+        - OverrideCycles exist in the data section, and
+        - Index 1 is masked out for the sample in the OverrideCycles
+
+        See [ref1] for details.
+
+    BarcodeMismatchesIndex2 : int, NA
+
+        Optional. See description of BarcodeMismatchesIndex1, applied to BarcodeMismatchesIndex2.
+
+        See [ref1] for details.
+
+    OverrideCycles : str
+
+        Optional. Specifies the sequencing and indexing cycles to be used when
+        processing the sequencing data. See [ref1] for details.
+
+        See [ref1] for details.
+
+    FastqCompressionFormat : str
+
+        Optional. The compression format for the FASTQ output files. Allowed
+        values are gzip or dragen.
+
+        See [ref1] for details.
+
+    NoLaneSplitting : bool
+
+        Optional. If set to true, output all lanes of a flow cell to the same
+        FASTQ files consecutively.
+
+        See [ref1] for details.
+
+    CreateFastqForIndexReads: bool
+
+        Optional. Generating FASTQs for index reads is off by default, add the
+        sample sheet setting with a value of 1 to enable. When an index read is
+        specified as a UMI with OverrideCycles, the UMI read will be output to
+        a FASTQ file. This feature introduced in BCL Convert version 3.7.5
+
+        See [ref2] for details.
+
+
+    Examples
+    --------
+
+    >>> d = {'SoftwareVersion': '4.2.7', 'OverrideCycles': 'Y300;I12;Y300', 'BarcodeMismatchesIndex1': '0', 'FastqCompressionFormat': 'gzip', 'NoLaneSplitting': 'true'}
+    >>> sec = BCLConvertSettingsSection(d)
+    >>> sec.CreateFastqForIndexReads = True
+    >>> print(sec)
+    BCLConvert_Settings({'SoftwareVersion': '4.2.7', 'OverrideCycles': 'Y300;I12;Y300', 'BarcodeMismatchesIndex1': '0', 'FastqCompressionFormat': 'gzip', 'NoLaneSplitting': 'true', 'CreateFastqForIndexReads': 0})
+
+
+
+    [ref1]: https://help.connected.illumina.com/run-set-up/overview/instrument-settings/nextseq-1000-2000-settings#tab-id-4.2.7
+    [ref2]: https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
+    '''
+
+    @property
+    def name(self):
+        return 'BCLConvert_Settings'
+
+    @property
+    def SoftwareVersion(self):
+        return self.data.get('SoftwareVersion', None)
+
+    @SoftwareVersion.setter
+    def SoftwareVersion(self, value):
+        if not isinstance(value, str):
+            raise ValueError('SoftwareVersion must be a string')
+        self.data['SoftwareVersion'] = value
+
+    @property
+    def AdapterRead1(self):
+        return self.data.get('AdapterRead1', None)
+
+    @AdapterRead1.setter
+    def AdapterRead1(self, value):
+        if not isinstance(value, str):
+            raise ValueError('AdapterRead1 must be a string')
+        self.data['AdapterRead1'] = value
+
+    @property
+    def AdapterRead2(self):
+        return self.data.get('AdapterRead2', None)
+
+    @AdapterRead2.setter
+    def AdapterRead2(self, value):
+        if not isinstance(value, str):
+            raise ValueError('AdapterRead2 must be a string')
+        self.data['AdapterRead2'] = value
+
+    @property
+    def BarcodeMismatchesIndex1(self):
+        return self.data.get('BarcodeMismatchesIndex1', None)
+
+    @BarcodeMismatchesIndex1.setter
+    def BarcodeMismatchesIndex1(self, value):
+        if value not in [0, 1, 2, 'na']:
+            raise ValueError('BarcodeMismatchesIndex1 must be 0, 1, 2, or "na"')
+        self.data['BarcodeMismatchesIndex1'] = value
+
+    @property
+    def BarcodeMismatchesIndex2(self):
+        return self.data.get('BarcodeMismatchesIndex2', None)
+
+    @BarcodeMismatchesIndex2.setter
+    def BarcodeMismatchesIndex2(self, value):
+        if value not in [0, 1, 2, 'na']:
+            raise ValueError('BarcodeMismatchesIndex2 must be 0, 1, 2, or "na"')
+        self.data['BarcodeMismatchesIndex2'] = value
+
+    @property
+    def OverrideCycles(self):
+        return self.data.get('OverrideCycles', None)
+
+    @OverrideCycles.setter
+    def OverrideCycles(self, value):
+        if not isinstance(value, str):
+            raise ValueError('OverrideCycles must be a string')
+        self.data['OverrideCycles'] = value
+
+    @property
+    def FastqCompressionFormat(self):
+        return self.data.get('FastqCompressionFormat', None)
+
+    @FastqCompressionFormat.setter
+    def FastqCompressionFormat(self, value):
+        if value not in ['gzip', 'dragen']:
+            raise ValueError('FastqCompressionFormat must be "gzip" or "dragen"')
+        self.data['FastqCompressionFormat'] = value
+
+    @property
+    def NoLaneSplitting(self):
+        return self.data.get('NoLaneSplitting', None)
+
+    @NoLaneSplitting.setter
+    def NoLaneSplitting(self, value):
+        '''
+        Concatenation of FASTQ files separated by lane can be done by enabling
+        this setting. FASTQs will be output with the naming convention
+        <Sample_ID>_S#_<R or I>#_001.fastq.gz (no L00# included). Reports will
+        be generated with values separated by lane. Command line option
+        introduced in BCL Convert version 3.7.5. Sample sheet setting
+        introduced in BCL Convert 3.8. Command line and sample sheet settings
+        must be consistent.
+
+        Command Line:
+
+            --no-lane-splitting (default off)
+
+        Sample sheet:
+
+            NoLaneSplitting, true or false (default false)
+
+        [ref]: https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
+        '''
+        if not isinstance(value, bool) and not value == 0 and not value == 1:
+            raise ValueError('NoLaneSplitting must be a boolean')
+        if value or value.casefold() == 'true':
+            self.data['NoLaneSplitting'] = 'true'
+        else:
+            self.data['NoLaneSplitting'] = 'false'
+
+    @property
+    def CreateFastqForIndexReads(self):
+        return self.data.get('CreateFastqForIndexReads', None)
+
+    @CreateFastqForIndexReads.setter
+    def CreateFastqForIndexReads(self, value):
+        '''
+        Sample Sheet: CreateFastqForIndexReads, 0 or 1 (default 0)
+
+        [ref]: https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
+        '''
+        if not isinstance(value, bool) and not value == 0 and not value == 1:
+            raise ValueError('CreateFastqForIndexReads must be a boolean')
+        if value:
+            self.data['CreateFastqForIndexReads'] = 1
+        else:
+            self.data['CreateFastqForIndexReads'] = 0
+
+
 class TableSection:
     def __init__(self, data, name=None):
         '''
