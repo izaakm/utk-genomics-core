@@ -134,14 +134,16 @@ def parse_list_section(lines, name=None):
     return ListSection(data, name=name)
 
 
-def parse_dict_section(lines, name=None):
+def parse_dict_section(lines, name=None, cls=None):
+    if cls is None:
+        cls = DictSection
     data = {}
     for line in lines:
         if not line:
             continue
         key, val, *_ = line.split(',')
         data[key] = val
-    return DictSection(data, name=name)
+    return cls(data, name=name)
 
 
 def parse_table_section(lines, name=None):
@@ -391,7 +393,35 @@ class DictSection:
             print(text, file=file)
 
 
-class BCLConvertSettingsSection(DictSection):
+class SettingsSection(DictSection):
+    '''
+    Generic settings that can be used in both v1 and v2 sample sheets.
+    '''
+    @property
+    def CreateFastqForIndexReads(self):
+        return self.data.get('CreateFastqForIndexReads', None)
+
+    @CreateFastqForIndexReads.setter
+    def CreateFastqForIndexReads(self, value):
+        '''
+        Generating FASTQs for index reads is off by default, add the sample
+        sheet setting with a value of 1 to enable. When an index read is
+        specified as a UMI with OverrideCycles, the UMI read will be output to
+        a FASTQ file. This feature introduced in BCL Convert version 3.7.5
+
+        Sample Sheet: CreateFastqForIndexReads, 0 or 1 (default 0)
+
+        [ref]: https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
+        '''
+        if not isinstance(value, bool) and not value == 0 and not value == 1:
+            raise ValueError('CreateFastqForIndexReads must be a boolean')
+        if value:
+            self.data['CreateFastqForIndexReads'] = 1
+        else:
+            self.data['CreateFastqForIndexReads'] = 0
+
+
+class BCLConvertSettingsSection(SettingsSection):
     '''
     Settings for BCL Convert v4.2.7. See [ref1] for details.
 
@@ -483,7 +513,6 @@ class BCLConvertSettingsSection(DictSection):
     >>> sec.CreateFastqForIndexReads = True
     >>> print(sec)
     BCLConvert_Settings({'SoftwareVersion': '4.2.7', 'OverrideCycles': 'Y300;I12;Y300', 'BarcodeMismatchesIndex1': '0', 'FastqCompressionFormat': 'gzip', 'NoLaneSplitting': 'true', 'CreateFastqForIndexReads': 0})
-
 
 
     [ref1]: https://help.connected.illumina.com/run-set-up/overview/instrument-settings/nextseq-1000-2000-settings#tab-id-4.2.7
@@ -595,24 +624,6 @@ class BCLConvertSettingsSection(DictSection):
             self.data['NoLaneSplitting'] = 'true'
         else:
             self.data['NoLaneSplitting'] = 'false'
-
-    @property
-    def CreateFastqForIndexReads(self):
-        return self.data.get('CreateFastqForIndexReads', None)
-
-    @CreateFastqForIndexReads.setter
-    def CreateFastqForIndexReads(self, value):
-        '''
-        Sample Sheet: CreateFastqForIndexReads, 0 or 1 (default 0)
-
-        [ref]: https://knowledge.illumina.com/software/general/software-general-reference_material-list/000003710
-        '''
-        if not isinstance(value, bool) and not value == 0 and not value == 1:
-            raise ValueError('CreateFastqForIndexReads must be a boolean')
-        if value:
-            self.data['CreateFastqForIndexReads'] = 1
-        else:
-            self.data['CreateFastqForIndexReads'] = 0
 
 
 class TableSection:
@@ -965,7 +976,11 @@ class SampleSheetv1(BaseSampleSheet):
         '''
         if not self._settings:
             name = 'Settings'
-            self._settings = parse_dict_section(self.content[name], name=name)
+            self._settings = parse_dict_section(
+                self.content[name],
+                name=name,
+                cls=SettingsSection
+            )
         return self._settings
 
     @property
@@ -1032,7 +1047,11 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         if not self._bclconvert_settings:
             name = 'BCLConvert_Settings'
-            self._bclconvert_settings = parse_dict_section(self.content[name], name=name)
+            self._bclconvert_settings = parse_dict_section(
+                self.content[name],
+                name=name,
+                cls=BCLConvertSettingsSection
+            )
         return self._bclconvert_settings
 
     Settings = BCLConvert_Settings
