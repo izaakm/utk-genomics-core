@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - biopython
   - ca-certificates
   - certifi
   - ipykernel
@@ -11,9 +12,12 @@ dependencies:
   - mamba
   - multiqc
   - nbconvert
+  - numpy
   - openpyxl
   - openssl
   - pandas
   - python
   - sample-sheet
+  - scikit-learn
+  - scipy
   - simple_slurm
