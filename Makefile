@@ -1,5 +1,12 @@
 SHELL := /bin/bash
 
+LOCAL_SRC := $(shell pwd -P)/src
+LOCAL_BIN = $(shell pwd -P)/bin
+
+# Find executable bash scripts in the src dir.
+SRC_SCRIPTS := $(shell find $(LOCAL_SRC) -maxdepth 1 -type f -name '*.sh' -perm +111 -print)
+BIN_SCRIPTS := $(patsubst $(LOCAL_SRC)/%,$(LOCAL_BIN)/%,$(SRC_SCRIPTS))
+
 CODEBOOKS_SRC := $(shell find $(CODEBOOKS_HOME) -maxdepth 1 -type d -name '*gensvc*' -or -name '*genomics-core*')
 CODEBOOKS_DST := $(subst $(CODEBOOKS_HOME),codebooks,$(CODEBOOKS_SRC))
 
@@ -16,6 +23,7 @@ usage:
 	@echo "  tags         # Generate tags for the source code"
 	@echo "  codebooks    # Create symbolic links to codebooks in the current directory"
 	@echo "  init         # Create .env and .work files for environment setup"
+	@echo "  scripts      # Create symbolic links to executable scripts in the bin directory"
 	@echo "  install      # Install the conda environment and Python package"
 	@echo "  uninstall    # Remove the conda environment"
 	@echo "  j            # Open Jupyter workspace in Chrome"
@@ -39,6 +47,11 @@ init: .env .work
 .work:
 	@echo "conda activate $(CONDA_ENV_NAME)" >> $(@)
 	@echo "source .env" >> $(@)
+
+scripts: $(BIN_SCRIPTS)
+$(LOCAL_BIN)/%: $(LOCAL_SRC)/%
+	mkdir -p $(LOCAL_BIN)
+	ln -s $< $@
 
 install:
 	conda env create -f environment.yml
@@ -70,3 +83,4 @@ $(TEST_DATA)/%:
 
 clean:
 	rm -rf $(TEST_DATA)
+	find $(LOCAL_BIN) -type l -delete
