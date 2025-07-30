@@ -9,6 +9,7 @@ codebooks/
 logs/
 notebooks/
 tests/
+data
 
 *tmp*
 
