@@ -66,69 +66,35 @@ transfer_status() {
         ncomp=0
         sample_project_name=$(basename "${sample_project_dir}")
         notification_complete="${sample_project_dir}.EmailNotification.txt"
+        isaac_transfer_complete="${sample_project_dir}.ISAACTransferComplete"
+        globus_transfer_complete="${sample_project_dir}.GlobusTransferComplete"
+        globus_collection_complete="${globus_data}/${runid}/${sample_project_name}.collection.json"
         # echo "Sample Project Dir: ${sample_project_dir}"
-        if [[ $sample_project_name == *globus* ]] ; then
-            transfer_complete="${sample_project_dir}.GlobusTransferComplete"
-            collection_complete="${globus_data}/${runid}/${sample_project_name}.collection.json"
-            if [[ -f "$notification_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Notification Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Notification INCOMPLETE"
-            fi
-            if [[ -f "$collection_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Collection Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Collection INCOMPLETE"
-            fi
-            if [[ -f "$transfer_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Transfer Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Transfer INCOMPLETE"
-            fi
-            printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | ${ncomp} of 3 complete"
-        elif [[ $sample_project_dir == *external* ]] ; then
-            transfer_complete="${sample_project_dir}.GlobusTransferComplete"
-            collection_complete="${globus_data}/${runid}/${sample_project_name}.collection.json"
-            if [[ -f "$notification_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Notification Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Notification INCOMPLETE"
-            fi
-            if [[ -f "$collection_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Collection Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Collection INCOMPLETE"
-            fi
-            if [[ -f "$transfer_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Transfer Complete"
-            else
-                printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | Transfer INCOMPLETE"
-            fi
-            printf "$fmtstr" "${runid}" "External Transfer ${sample_project_name} | ${ncomp} of 3 complete"
+        if [[ -f "$globus_collection_complete" ]] ; then
+            ((ncomp+=1))
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Globus Collection Complete"
         elif [[ $sample_project_name == UTK* ]] ; then
-            transfer_complete="${sample_project_dir}.ISAACTransferComplete"
-            if [[ -f "$notification_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "ISAAC Transfer ${sample_project_name} | Notification Complete"
-            else
-                printf "$fmtstr" "${runid}" "ISAAC Transfer ${sample_project_name} | Notification INCOMPLETE"
-            fi
-            if [[ -f "$transfer_complete" ]] ; then
-                ((ncomp+=1))
-                printf "$fmtstr" "${runid}" "ISAAC Transfer ${sample_project_name} | Transfer Complete"
-            else
-                printf "$fmtstr" "${runid}" "ISAAC Transfer ${sample_project_name} | Transfer INCOMPLETE"
-            fi
-            printf "$fmtstr" "${runid}" "ISAAC Transfer ${sample_project_name} | ${ncomp} of 2 complete"
+            # Skip - It's probably an ISAAC transfer.
+            __noop__="foo"
         else
-            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | UNKNOWN TRANSFER TYPE"
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Globus Collection INCOMPLETE"
         fi
+        if [[ -f "$isaac_transfer_complete" ]] ; then
+            ((ncomp+=1))
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | ISAAC Transfer Complete"
+        elif [[ -f "$globus_transfer_complete" ]] ; then
+            ((ncomp+=1))
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Globus Transfer Complete"
+        else
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Transfer INCOMPLETE"
+        fi
+        if [[ -f "$notification_complete" ]] ; then
+            ((ncomp+=1))
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Notification Complete"
+        else
+            printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | Notification INCOMPLETE"
+        fi
+        # printf "$fmtstr" "${runid}" "Transfer ${sample_project_name} | ${ncomp} of 3 complete"
     done
 }
 
