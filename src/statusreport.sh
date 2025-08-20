@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-declare -r datadir="/Users/jmill165/data/raw/gensvc"
+declare -r datadir="${GENSVC_DATADIR:-/lustre/isaac24/proj/UTK0192/data}"
 declare -r illumina_data="${datadir}/Illumina"
 declare -r proc_data="${datadir}/processed"
 declare -r globus_data="${datadir}/globus"
