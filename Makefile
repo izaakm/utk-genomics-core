@@ -4,7 +4,7 @@ LOCAL_SRC := $(shell pwd -P)/src
 LOCAL_BIN = $(shell pwd -P)/bin
 
 # Find executable bash scripts in the src dir.
-SRC_SCRIPTS := $(shell find $(LOCAL_SRC) -maxdepth 1 -type f -name '*.sh' -perm +111 -print)
+SRC_SCRIPTS := $(shell find $(LOCAL_SRC) -maxdepth 1 -type f -name '*.sh' -perm -a=x -print)
 BIN_SCRIPTS := $(patsubst $(LOCAL_SRC)/%,$(LOCAL_BIN)/%,$(SRC_SCRIPTS))
 
 CODEBOOKS_SRC := $(shell find $(CODEBOOKS_HOME) -maxdepth 1 -type d -name '*gensvc*' -or -name '*genomics-core*')
