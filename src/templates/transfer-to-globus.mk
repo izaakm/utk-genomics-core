@@ -28,7 +28,7 @@ COLLECTION_INFO := $(GLOBUS_DATA)/$(RUNID)/COLLECTIONS
 # all: $(GLOBUS_COLLECTION)
 all: $(GLOBUS_TRANSFER_COMPLETE)
 
-$(GLOBUS_DATA)/$(RUNID)/%: $(PROCESSED_DATA)/$(RUNID)/transfer/external/% | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/external/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
 	@echo "External: $(*)"
 	cp -lr $(<) $(@D)/
 	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
@@ -37,7 +37,7 @@ $(GLOBUS_DATA)/$(RUNID)/%: $(PROCESSED_DATA)/$(RUNID)/transfer/external/% | $(GL
 unknown_project/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
 	touch $(@)
 
-$(GLOBUS_DATA)/$(RUNID)/%: $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
 	@echo "Unknown Project: $(*)"
 	cp -lr $(<) $(@D)/
 	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
