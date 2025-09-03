@@ -4,33 +4,47 @@ UTK0192 := /lustre/isaac24/proj/UTK0192
 GLOBUS_DATA := $(UTK0192)/data/globus
 PROCESSED_DATA := $(UTK0192)/data/processed
 
-runid := $(shell basename $(realpath ..))
-sample_project := $(shell find external unknown_project -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
-$(info $(sample_project))
+RUNID := $(shell basename $(realpath ..))
 
-globus_projects := $(addprefix $(GLOBUS_DATA)/$(runid)/,$(sample_project))
-collections := $(GLOBUS_DATA)/$(runid)/COLLECTIONS
+# */<SAMPLE_PROJECT>
+SAMPLE_PROJECT := $(shell find * -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 
-# $(info $(runid))
-# $(info $(sample_project))
-# $(info $(globus_projects))
+# */*.GlobusTransferComplete
+GLOBUS_TRANSFER_COMPLETE := $(addsuffix .GlobusTransferComplete,$(wildcard */*))
 
-all: $(globus_projects)
+# $(info $(SAMPLE_PROJECT))
 
-$(GLOBUS_DATA)/$(runid)/%: $(PROCESSED_DATA)/$(runid)/transfer/external/% | $(GLOBUS_DATA)/$(runid) $(collections)
+# .../UTK0192/data/globus/<RUNID>/<SAMPLE_PROJECT>
+GLOBUS_COLLECTION := $(addprefix $(GLOBUS_DATA)/$(RUNID)/,$(SAMPLE_PROJECT))
+
+# .../UTK0192/data/globus/<RUNID>/COLLECTIONS
+COLLECTION_INFO := $(GLOBUS_DATA)/$(RUNID)/COLLECTIONS
+
+
+# $(info $(RUNID))
+# $(info $(SAMPLE_PROJECT))
+# $(info $(GLOBUS_COLLECTION))
+
+# all: $(GLOBUS_COLLECTION)
+all: $(GLOBUS_TRANSFER_COMPLETE)
+
+$(GLOBUS_DATA)/$(RUNID)/%: $(PROCESSED_DATA)/$(RUNID)/transfer/external/% | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
 	@echo "External: $(*)"
 	cp -lr $(<) $(@D)/
-	echo "$(runid) - $(*)" >> $(@D)/COLLECTIONS
+	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
 	touch "$(<D)/$(*).GlobusTransferComplete"
 
-$(GLOBUS_DATA)/$(runid)/%: $(PROCESSED_DATA)/$(runid)/transfer/unknown_project/% | $(GLOBUS_DATA)/$(runid) $(collections)
+unknown_project/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
+	touch $(@)
+
+$(GLOBUS_DATA)/$(RUNID)/%: $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
 	@echo "Unknown Project: $(*)"
 	cp -lr $(<) $(@D)/
-	echo "$(runid) - $(*)" >> $(@D)/COLLECTIONS
+	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
 	touch "$(<D)/$(*).GlobusTransferComplete"
 
-$(collections):
+$(COLLECTION_INFO):
 	@echo "<PI Last Name> UTK Illumina Data <YYYYMMDD> [(<Collaborator Last Name>)]" > $(@)
 
-$(GLOBUS_DATA)/$(runid):
+$(GLOBUS_DATA)/$(RUNID):
 	test -d $(GLOBUS_DATA) && mkdir -p $(@)
