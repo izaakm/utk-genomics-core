@@ -25,7 +25,7 @@ declare runid="{__runid}"
 declare utstor_dir="{__utstor_dir}"
 
 declare tar_file="${{utstor_dir}}/${{runid}}.tar"
-declare archive_complete="${{utstor_dir}}/${{runid}}.archive_complete"
+declare archive_complete="${{utstor_dir}}/${{runid}}.archivecomplete"
 
 logger() {{
     local content=("$@")
@@ -35,9 +35,9 @@ logger() {{
 cd "$utstor_dir"
 
 # If the target already exists, exit.
-test -f "${{archive_complete}}" && exit 1
-test -f "${{runid}}.inprogress" && exit 1
-test -f "$runid" && exit 1
+test -e "${{archive_complete}}" && exit 1
+test -e "${{runid}}.inprogress" && exit 1
+test -e "$runid" && exit 1
 
 logger "Make hardlinks to the data ..."
 cp -lr "$rundir" "./${{runid}}.inprogress"
@@ -64,5 +64,6 @@ mv -n "$runid" "${{runid}}.archivecomplete"
 logger "All complete."
 
 exit 0
-'''
+'''.strip()
 
+# END
