@@ -17,7 +17,8 @@ class Config:
     _GENSVC_NEXTSEQ_DATADIR = os.getenv('GENSVC_NEXTSEQ_DATADIR')
     _GENSVC_NOVASEQ_DATADIR = os.getenv('GENSVC_NOVASEQ_DATADIR')
     _GENSVC_PROCDATA = os.getenv('GENSVC_PROCDATA')
-    _GENSVC_UTSTOR_DIR = os.getenv('GENSVC_ILLUMINA_DIR')
+    _GENSVC_TRASH_DIR = os.getenv('GENSVC_TRASH_DIR')
+    _GENSVC_UTSTOR_DIR = os.getenv('GENSVC_UTSTOR_DIR')
     _SLURM_SUBMIT = False
 
     @property
@@ -70,6 +71,15 @@ class Config:
             return pathlib.Path(self._GENSVC_PROCDATA)
         elif self.GENSVC_DATADIR:
             return self.GENSVC_DATADIR / 'processed'
+        else:
+            return None
+
+    @property
+    def GENSVC_TRASH_DIR(self):
+        if self._GENSVC_TRASH_DIR:
+            return pathlib.Path(self._GENSVC_TRASH_DIR)
+        elif self.GENSVC_DATADIR:
+            return self.GENSVC_DATADIR / '.TRASH'
         else:
             return None
 
