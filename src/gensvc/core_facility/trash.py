@@ -24,20 +24,41 @@ def get_script_header(trash_dir):
         'set -o pipefail',
         'umask 002',
         '',
-        f'mkdir -pv "{trash_dir}"',
+        'declare dry_run=false',
+        '',
+        'run() {',
+        '    # Run the command, or just print it if dry_run is true.',
+        '    local command=("$@")',
+        '    if [[ $dry_run == true ]] ; then',
+        '        echo "[DRYRUN] ${command[@]}" ;',
+        '    else',
+        '        eval "${command[@]}" ;',
+        '    fi',
+        '}',
+        '',
+        'while getopts "n" opt ; do',
+        '    case "$opt" in',
+        '        n) dry_run=true ;;',
+        '        *) echo "Unrecognized option: $opt" ; exit 1 ;;',
+        '    esac',
+        'done',
+        '',
+        f'run \'mkdir -pv "{trash_dir}"\'',
         '',
         'echo "Trashing sequencing runs older than six months ..."',
         ''
+
     ]
     return '\n'.join(lines) + '\n'
 
 
 def cleanup(rundir_ls, archive_dir, trash_dir):
     '''
-    Sequencing runs that are older than six months should be removed.
+    Sequencing runs that are older than six months should be removed. Include a
+    30 day grace period => 210 days.
     '''
     now = datetime.now()
-    retention_ymd = (now - timedelta(days=180)).strftime('%y%m%d')
+    retention_ymd = (now - timedelta(days=210)).strftime('%y%m%d')
 
     script = []
     for rundir in rundir_ls:
@@ -53,7 +74,7 @@ def cleanup(rundir_ls, archive_dir, trash_dir):
             script.extend([
                 f'# Run dir is older than six months: {rundir}',
                 f'if [[ -n "$(find {archive_dir} -maxdepth 2 -name "{rundir.name}.archivecomplete" -type d)" ]] ; then',
-                f'    mv -iv "{rundir}" "{trash_dir}/" ;',
+                f'    run \'mv -iv "{rundir}" "{trash_dir}/"\' ;',
                 f'else',
                 f'    echo "Skipping {rundir}, not archived yet." ;',
                 f'fi\n',
@@ -77,7 +98,10 @@ def cli(args):
     script = get_script_header(config.GENSVC_TRASH_DIR)
 
     for inst_dir in config.GENSVC_ILLUMINA_DIR.glob('*Runs'):
-        if inst_dir.is_dir():
+        if inst_dir.name == 'iSeqRuns':
+            # Skip iSeqRuns
+            continue
+        elif inst_dir.is_dir():
             logger.debug('Instrument Directory:', inst_dir)
 
             # Returns a single script string.
