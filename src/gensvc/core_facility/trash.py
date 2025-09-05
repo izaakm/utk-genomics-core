@@ -2,87 +2,49 @@ import os
 import pathlib
 import re
 import sys
+import logging
 
-# from templates import templates
 
 from datetime import datetime, timedelta
+from gensvc.misc.config import config
+from gensvc.misc.templates import templates
 
-re_rundir = re.compile(r'^(?P<date>\d{6})_(?P<inst>[A-Z0-9]+)_(?P<id>\d+)_(?P<flowcell>[A-Z0-9]+)$')
+logger = logging.getLogger(__name__)
 
+re_rundir = re.compile(r'^(?P<date>\d{6,8})_(?P<inst>[A-Z0-9]+)_(?P<id>\d+)_(?P<flowcell>[A-Z0-9-]+)$')
 
-class Config:
-    '''
-    GENSVC_DATADIR=/Users/jmill165/data/mirrors/gensvc
-    GENSVC_ISEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/iSeqRuns
-    GENSVC_NEXTSEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/NextSeqRuns
-    GENSVC_NOVASEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/NovaSeqRuns
-    GENSVC_PROCDATA=/Users/jmill165/data/mirrors/gensvc/processed
-    '''
-    datadir = pathlib.Path('~/data/mirrors/gensvc/Illumina').expanduser()
-    illumina_dir = pathlib.Path('~/data/mirrors/gensvc/Illumina').expanduser()
-    utstor_dir = pathlib.Path('~/data/mirrors/gensvc/utstor').expanduser()
-    debug = False
-    submit = False
-
-
-def archive(rundir_ls, archive_dir, debug=False):
-    '''
-
-    Returns
-    -------
-    list of tuple
-    '''
-    now = datetime.now()
-    current_ymd = now.strftime('%y%m%d')
-    data = []
-    for rundir in rundir_ls:
-        if rundir.is_dir() and re_rundir.match(rundir.name):
-            if debug:
-                print('# Run directory:', rundir, file=sys.stderr)
-        else:
-            if debug:
-                print('# Skipping:', rundir, file=sys.stderr)
-            continue
-
-        run_date = re_rundir.match(rundir.name).group('date')
-        yyyy = '20' + run_date[0:2]
-
-        archive_dst = archive_dir / yyyy / rundir.name
-
-        # print('# Run directory:', rundir)
-        # print('# Archive destination:', archive_dst)
-
-        script_path = archive_dir / yyyy / f'{rundir.name}-archive.sh'
-        # print(f'sbatch {script_path}')
-
-        script = templates['archive.sh'].format(
-            __job_name=f'{rundir.name}-archive',
-            __rundir=rundir,
-            __runid=rundir.name,
-            __utstor_dir=archive_dst.parent
-        )
-        # print(script)
-
-        data.append((script_path, script))
-
-    return data
+def get_script_header(trash_dir):
+    lines = [
+        '#!/bin/bash -l',
+        '# Cleanup old sequencing runs',
+        '',
+        '# set -x',
+        'set -e',
+        'set -u',
+        'set -o pipefail',
+        'umask 002',
+        '',
+        f'mkdir -pv "{trash_dir}"',
+        '',
+        'echo "Trashing sequencing runs older than six months ..."',
+        ''
+    ]
+    return '\n'.join(lines) + '\n'
 
 
-def cleanup(rundir_ls, archive_dir, debug=False):
+def cleanup(rundir_ls, archive_dir, trash_dir):
     '''
     Sequencing runs that are older than six months should be removed.
     '''
-    script = []
     now = datetime.now()
     retention_ymd = (now - timedelta(days=180)).strftime('%y%m%d')
 
+    script = []
     for rundir in rundir_ls:
         if rundir.is_dir() and re_rundir.match(rundir.name):
-            if debug:
-                print('# Run directory:', rundir, file=sys.stderr)
+            logger.debug('Run directory: %s' % rundir)
         else:
-            if debug:
-                print('# Skipping:', rundir, file=sys.stderr)
+            logger.debug('Skipping: %s' % rundir)
             continue
 
         run_date = re_rundir.match(rundir.name).group('date')
@@ -90,43 +52,49 @@ def cleanup(rundir_ls, archive_dir, debug=False):
         if run_date < retention_ymd:
             script.extend([
                 f'# Run dir is older than six months: {rundir}',
-                f'if [[ -n "$(find {archive_dir} -name "{rundir.name}.archivecomplete" -type d)" ]] ; then',
-                f'    echo rm -rf "{rundir}" ;',
+                f'if [[ -n "$(find {archive_dir} -maxdepth 2 -name "{rundir.name}.archivecomplete" -type d)" ]] ; then',
+                f'    mv -iv "{rundir}" "{trash_dir}/" ;',
                 f'else',
-                f'    echo "# Skipping {rundir}, not archived yet." ;',
+                f'    echo "Skipping {rundir}, not archived yet." ;',
                 f'fi\n',
             ])
 
-    script = '\n'.join(script)
-    return script
+    return '\n'.join(script) + '\n'
 
 
-if __name__ == '__main__':
-    config = Config()
-    print("Data Directory:", config.datadir)
-    print("Illumina Directory:", config.illumina_dir)
-    print("UTStoR Directory:", config.utstor_dir)
+def cli(args):
+    if args.verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
 
-    for inst_dir in config.illumina_dir.glob('*Runs'):
+    logger.debug("Data Directory: %s" % config.GENSVC_DATADIR)
+    logger.debug("Illumina Directory: %s" % config.GENSVC_ILLUMINA_DIR)
+    logger.debug("UTStoR Directory: %s" % config.GENSVC_UTSTOR_DIR)
+
+    script = get_script_header(config.GENSVC_TRASH_DIR)
+
+    for inst_dir in config.GENSVC_ILLUMINA_DIR.glob('*Runs'):
         if inst_dir.is_dir():
-            print('Instrument Directory:', inst_dir)
-
-            # Returns a list of (script_path, script) tuples.
-            script_data = archive(inst_dir.iterdir(), config.utstor_dir, debug=config.debug)
-            # print(script)
-
-            for script_path, script_content in script_data:
-                with open(script_path, 'w') as f:
-                    print(script_content, file=f)
-                    print(f'# Wrote job script: {script_path}')
-                if config.submit:
-                    print(f'# Submitting job: {script_path}')
-                    print(f'sbatch {script_path}')
+            logger.debug('Instrument Directory:', inst_dir)
 
             # Returns a single script string.
-            script = cleanup(inst_dir.iterdir(), config.utstor_dir, debug=config.debug)
-            print(script)
+            new_lines = cleanup(
+                inst_dir.iterdir(),
+                config.GENSVC_UTSTOR_DIR,
+                config.GENSVC_TRASH_DIR
+            )
+            script += new_lines
         else:
-            print('Skipping:', inst_dir)
+            logger.debug('Skipping:', inst_dir)
+
+    if args.output:
+        with open(args.output, 'w') as f:
+            print(script, file=f)
+    else:
+        print(script)
+
 
 # END
