@@ -15,23 +15,11 @@ import logging
 import pandas as pd
 
 from gensvc.wrappers import bcl2fastq, slurm
-from gensvc.core_facility import reports, transfer
-from gensvc.misc import config, utils
+from gensvc.core_facility import reports, transfer, archive
+# from gensvc.misc import config, utils
+from gensvc.misc import utils
+from gensvc.misc.config import config
 from gensvc.data import illumina
-
-# def as_path(obj):
-#     try:
-#         return pathlib.Path(obj)
-#     except:
-#         return None
-
-# GENSVC_DATADIR = as_path(os.getenv('GENSVC_DATADIR'))
-#
-# GENSVC_MISEQ_DATADIR = as_path(os.getenv('GENSVC_MISEQ_DATADIR'))
-# GENSVC_NEXTSEQ_DATADIR = as_path(os.getenv('GENSVC_NEXTSEQ_DATADIR'))
-# GENSVC_NOVASEQ_DATADIR = as_path(os.getenv('GENSVC_NOVASEQ_DATADIR'))
-#
-# GENSVC_PROCDATA = as_path(os.getenv('GENSVC_PROCDATA'))
 
 
 logger = logging.getLogger(__name__)
@@ -280,19 +268,19 @@ def get_parser():
 
     parser.add_argument(
         '-v', '--verbose',
-        action='store_true',
-        default=False,
-        help='Print extra stuff.'
+        action='count',
+        default=0,
+        help='Increase verbosity level (can be used multiple times). If once, set logging level to INFO, if twice or more, set to DEBUG.'
     )
 
-    # ************************************************************
+    # ============================================================
     # Subparsers
-    # ************************************************************
+    # ============================================================
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    # ************************************************************
+    # ============================================================
     # Set up a new sample sheet.
-    # ************************************************************
+    # ============================================================
     parse_sample_sheet = subparsers.add_parser(
         'samplesheet',
         help='Generate a sample sheet for BCL-Convert.',
@@ -368,12 +356,11 @@ def get_parser():
         help='Create FASTQ files for index reads.'
     )
 
-    # ************************************************************
+    # ============================================================
     # Generate summary stats.
-    # ************************************************************
+    # ============================================================
     parse_extract_bcl2fastq_stats = subparsers.add_parser(
         'extract-bcl2fastq-stats', 
-        aliases=['ex'],
         help=bcl2fastq.__doc__.strip().split('\n')[0],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -402,12 +389,12 @@ def get_parser():
         help='Directory in which to put the output files.'
     )
 
-    # ************************************************************
+    # ============================================================
     # List sequencing runs.
-    # ************************************************************
+    # ============================================================
     parse_reports = subparsers.add_parser(
         'list', 
-        aliases=['ls', 'scan', 'sc'],
+        aliases=['ls'],
         help='List sequencing runs in the given director',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -440,12 +427,11 @@ def get_parser():
         help='Transpose the table.'
     )
 
-    # ************************************************************
+    # ============================================================
     # Convert BCL files to FASTQ.
-    # ************************************************************
+    # ============================================================
     parse_converter = subparsers.add_parser(
         'convert', 
-        aliases=['co'],
         help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -480,12 +466,11 @@ def get_parser():
         help='Submit bcl2fastq job to Slurm using `sbatch`.'
     )
 
-    # ************************************************************
+    # ============================================================
     # Trasfer data to user's project directory.
-    # ************************************************************
+    # ============================================================
     parse_setup_transfer = subparsers.add_parser(
         'setup_transfer', 
-        aliases=['se'],
         help='Set up data for tranfer.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -502,12 +487,11 @@ def get_parser():
         help='Run transfer as a Slurm job.'
     )
 
-    # ************************************************************
+    # ============================================================
     # Trasfer data to user's project directory.
-    # ************************************************************
+    # ============================================================
     parse_transfer = subparsers.add_parser(
         'transfer', 
-        aliases=['tr'],
         help='Transfer results to project directory.'
     )
     parse_transfer.set_defaults(func=run_transfer)
@@ -537,22 +521,44 @@ def get_parser():
         help='Run transfer as a Slurm job.'
     )
 
-    return parser
+    # ============================================================
+    # Archive
+    # ============================================================
+    parse_archive = subparsers.add_parser(
+        'archive',
+        help='Create tar archives of sequencing runs.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_archive.set_defaults(func=archive.cli)
+
+    # ============================================================
+    # Clean
+    # ============================================================
+    parse_clean = subparsers.add_parser(
+        'clean',
+        help='Create a script for deleting sequencing runs older than six months.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    return parser.parse_args()
 
 def main():
 
-    args = get_parser().parse_args()
+    args = get_parser()
+    print(args)
 
-    # Initialize logging.
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s %(levelname)s %(message)s',
-    )
+    # Initialize logger.
+    if args.verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
 
-    # Set up logging.
-
-    logger.info('*** Logger info is working ***')
-    logger.debug('*** Logger debug is working ***')
+    # # Test the logger.
+    # logger.warning('*** Logger WARNING is working ***')
+    # logger.info('*** Logger INFO is working ***')
+    # logger.debug('*** Logger DEBUG is working ***')
 
     res = args.func(args)
 
