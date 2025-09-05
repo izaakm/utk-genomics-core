@@ -2,11 +2,91 @@ import pathlib
 import os
 
 
-GENSVC_DATADIR = os.getenv('GENSVC_DATADIR', '')
-GENSVC_ISEQ_DATADIR = os.getenv('GENSVC_ISEQ_DATADIR', '')
-GENSVC_NEXTSEQ_DATADIR = os.getenv('GENSVC_NEXTSEQ_DATADIR', '')
-GENSVC_NOVASEQ_DATADIR = os.getenv('GENSVC_NOVASEQ_DATADIR', '')
-GENSVC_PROCDATA = os.getenv('GENSVC_PROCDATA', '')
+class Config:
+    '''
+    GENSVC_DATADIR=/Users/jmill165/data/mirrors/gensvc
+    GENSVC_ISEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/iSeqRuns
+    GENSVC_NEXTSEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/NextSeqRuns
+    GENSVC_NOVASEQ_DATADIR=/Users/jmill165/data/mirrors/gensvc/Illumina/NovaSeqRuns
+    GENSVC_PROCDATA=/Users/jmill165/data/mirrors/gensvc/processed
+    '''
+    _DEBUG = False
+    _GENSVC_DATADIR = os.getenv('GENSVC_DATADIR')
+    _GENSVC_ILLUMINA_DIR = os.getenv('GENSVC_ILLUMINA_DIR')
+    _GENSVC_ISEQ_DATADIR = os.getenv('GENSVC_ISEQ_DATADIR')
+    _GENSVC_NEXTSEQ_DATADIR = os.getenv('GENSVC_NEXTSEQ_DATADIR')
+    _GENSVC_NOVASEQ_DATADIR = os.getenv('GENSVC_NOVASEQ_DATADIR')
+    _GENSVC_PROCDATA = os.getenv('GENSVC_PROCDATA')
+    _GENSVC_UTSTOR_DIR = os.getenv('GENSVC_ILLUMINA_DIR')
+    _SLURM_SUBMIT = False
+
+    @property
+    def DEBUG(self):
+        return self._DEBUG
+
+    @property
+    def GENSVC_DATADIR(self):
+        return pathlib.Path(self._GENSVC_DATADIR) if self._GENSVC_DATADIR else None
+
+    @property
+    def GENSVC_ILLUMINA_DIR(self):
+        if self._GENSVC_ILLUMINA_DIR:
+            return pathlib.Path(self._GENSVC_ILLUMINA_DIR)
+        elif self.GENSVC_DATADIR:
+            return self.GENSVC_DATADIR / 'Illumina'
+        else:
+            return None
+
+    @property
+    def GENSVC_ISEQ_DATADIR(self):
+        if self._GENSVC_ISEQ_DATADIR:
+            return pathlib.Path(self._GENSVC_ISEQ_DATADIR)
+        elif self.GENSVC_ILLUMINA_DIR:
+            return self.GENSVC_ILLUMINA_DIR / 'iSeqRuns'
+        else:
+            return None
+
+    @property
+    def GENSVC_NEXTSEQ_DATADIR(self):
+        if self._GENSVC_NEXTSEQ_DATADIR:
+            return pathlib.Path(self._GENSVC_NEXTSEQ_DATADIR)
+        elif self.GENSVC_ILLUMINA_DIR:
+            return self.GENSVC_ILLUMINA_DIR / 'NEXTSEQRuns'
+        else:
+            return None
+
+    @property
+    def GENSVC_NOVASEQ_DATADIR(self):
+        if self._GENSVC_NOVASEQ_DATADIR:
+            return pathlib.Path(self._GENSVC_NOVASEQ_DATADIR)
+        elif self.GENSVC_ILLUMINA_DIR:
+            return self.GENSVC_ILLUMINA_DIR / 'NovaSeqRuns'
+        else:
+            return None
+
+    @property
+    def GENSVC_PROCDATA(self):
+        if self._GENSVC_PROCDATA:
+            return pathlib.Path(self._GENSVC_PROCDATA)
+        elif self.GENSVC_DATADIR:
+            return self.GENSVC_DATADIR / 'processed'
+        else:
+            return None
+
+    @property
+    def GENSVC_UTSTOR_DIR(self):
+        if self._GENSVC_UTSTOR_DIR:
+            return pathlib.Path(self._GENSVC_UTSTOR_DIR)
+        elif self.GENSVC_DATADIR:
+            return self.GENSVC_DATADIR / 'utstor'
+        else:
+            return None
+
+    @property
+    def SLURM_SUBMIT(self):
+        return self._SLURM_SUBMIT
+
+config = Config()
 
 
 # def get_env():
