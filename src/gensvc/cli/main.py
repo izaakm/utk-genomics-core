@@ -15,7 +15,7 @@ import logging
 import pandas as pd
 
 from gensvc.wrappers import bcl2fastq, slurm
-from gensvc.core_facility import reports, transfer, archive
+from gensvc.core_facility import reports, transfer, archive, trash
 # from gensvc.misc import config, utils
 from gensvc.misc import utils
 from gensvc.misc.config import config
@@ -532,12 +532,21 @@ def get_parser():
     parse_archive.set_defaults(func=archive.cli)
 
     # ============================================================
-    # Clean
+    # Trash
     # ============================================================
-    parse_clean = subparsers.add_parser(
-        'clean',
+    parse_trash = subparsers.add_parser(
+        'trash',
         help='Create a script for deleting sequencing runs older than six months.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_trash.set_defaults(func=trash.cli)
+
+    parse_trash.add_argument(
+        '--output', '-o',
+        action='store',
+        type=pathlib.Path,
+        default=None,
+        help='Path to output script file. If not provided, script is printed to stdout.'
     )
 
     return parser.parse_args()
@@ -545,7 +554,7 @@ def get_parser():
 def main():
 
     args = get_parser()
-    print(args)
+    # print(args)
 
     # Initialize logger.
     if args.verbose >= 2:
