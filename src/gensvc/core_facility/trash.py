@@ -61,7 +61,7 @@ def cleanup(rundir_ls, archive_dir, trash_dir):
     retention_ymd = (now - timedelta(days=210)).strftime('%y%m%d')
 
     script = []
-    for rundir in rundir_ls:
+    for rundir in sorted(rundir_ls):
         if rundir.is_dir() and re_rundir.match(rundir.name):
             logger.debug('Run directory: %s' % rundir)
         else:
@@ -72,12 +72,18 @@ def cleanup(rundir_ls, archive_dir, trash_dir):
 
         if run_date < retention_ymd:
             script.extend([
-                f'# Run dir is older than six months: {rundir}',
-                f'if [[ -n "$(find {archive_dir} -maxdepth 2 -name "{rundir.name}.archivecomplete" -type d)" ]] ; then',
+                f'# Run dir is older than six months and will be deleted:',
+                f'# => {rundir}',
+                f'if [[ -n "$(find {archive_dir} -maxdepth 2 -name "{rundir.name}.tar.utstorrcomplete" -type f)" ]] ; then',
                 f'    run \'mv -iv "{rundir}" "{trash_dir}/"\' ;',
                 f'else',
                 f'    echo "Skipping {rundir}, not archived yet." ;',
                 f'fi\n',
+            ])
+        else:
+            script.extend([
+                f'# Run dir is LESS THAN six months old and is NOT yet scheduled for deletion:',
+                f'# => {rundir}\n',
             ])
 
     return '\n'.join(script) + '\n'
@@ -113,10 +119,12 @@ def cli(args):
             script += new_lines
         else:
             logger.debug('Skipping:', inst_dir)
+    script += '# All done.'
 
     if args.output:
         with open(args.output, 'w') as f:
             print(script, file=f)
+        os.chmod(args.output, 0o755)
     else:
         print(script)
 
