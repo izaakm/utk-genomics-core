@@ -9,7 +9,7 @@ templates['archive.sh'] = '''
 #SBATCH --cpus-per-task=48
 #SBATCH --time=0-03:00:00
 #SBATCH --chdir {__utstor_dir}
-#SBATCH --output=%j-%x.o
+#SBATCH --output=%x-%j.o
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=OIT_HPSC_Genomics@utk.edu
 
@@ -27,10 +27,7 @@ declare utstor_dir="{__utstor_dir}"
 declare tar_file="${{utstor_dir}}/${{runid}}.tar"
 declare archive_complete="${{utstor_dir}}/${{runid}}.archivecomplete"
 
-logger() {{
-    local content=("$@")
-    echo "[$(date +%Y-%m-%dT%H:%M:%S)] ${{content[@]}}"
-}}
+echo "START $(date) ($(date +%s))"
 
 cd "$utstor_dir"
 
@@ -39,29 +36,29 @@ test -e "${{archive_complete}}" && exit 1
 test -e "${{runid}}.inprogress" && exit 1
 test -e "$runid" && exit 1
 
-logger "Make hardlinks to the data ..."
+# "Make hardlinks to the data ..."
 cp -lr "$rundir" "./${{runid}}.inprogress"
 mv -n "./${{runid}}.inprogress" "./${{runid}}"
 
-logger "Calculate checksums ..."
+# "Calculate checksums ..."
 cd "$runid"
 find . -type f -not -name 'checksums.sha256*' -print0 | xargs -0 -L1 --max-procs 0 sha256sum > "checksums.sha256.inprogress"
 mv -n "checksums.sha256.inprogress" "checksums.sha256"
 cd -
 
-logger "Compress the data ..."
+# "Compress the data ..."
 tar --exclude='*.fastq.gz' -cf "${{tar_file}}.inprogress" "${{runid}}"
 mv -n "${{tar_file}}.inprogress" "${{tar_file}}"
 
-logger "Also checksum the tar file ..."
+# "Also checksum the tar file ..."
 sha256sum "$(basename "${{tar_file}}")" > "${{tar_file}}.sha256.inprogress"
 mv -n "${{tar_file}}.sha256.inprogress" "${{tar_file}}.sha256"
 
-logger "Cleaning up ..."
+# "Cleaning up ..."
 mv -n "$runid" "${{runid}}.archivecomplete"
 # touch ArchiveSubmitComplete
 
-logger "All complete."
+echo "END $(date) ($(date +%s))"
 
 exit 0
 '''.strip()
