@@ -531,6 +531,13 @@ def get_parser():
     )
     parse_archive.set_defaults(func=archive.cli)
 
+    parse_archive.add_argument(
+        '--overwrite',
+        action='store_true',
+        default=False,
+        help='Overwrite existing job scripts.'
+    )
+
     # ============================================================
     # Trash
     # ============================================================
