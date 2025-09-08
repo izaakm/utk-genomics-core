@@ -24,7 +24,7 @@ def archive(rundir_ls, archive_dir):
     now = datetime.now()
     current_ymd = now.strftime('%y%m%d')
     data = []
-    for rundir in rundir_ls:
+    for rundir in sorted(rundir_ls):
         if rundir.is_dir() and re_rundir.match(rundir.name):
             logger.debug('Run directory: %s' % rundir)
         else:
