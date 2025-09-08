@@ -75,12 +75,15 @@ def cli(args):
             script_data = archive(inst_dir.iterdir(), config.GENSVC_UTSTOR_DIR)
 
             for script_path, script_content in script_data:
-                with open(script_path, 'w') as f:
-                    print(script_content, file=f)
-                    logger.info(f'Wrote job script: {script_path}')
-                if config.SLURM_SUBMIT:
-                    logger.info(f'Submitting job: {script_path}')
-                    logger.info(f'TODO sbatch {script_path}')
+                if not script_path.exists() or args.overwrite:
+                    with open(script_path, 'w') as f:
+                        print(script_content, file=f)
+                        logger.info(f'Wrote job script: {script_path}')
+                    if config.SLURM_SUBMIT:
+                        logger.info(f'Submitting job: {script_path}')
+                        logger.info(f'TODO sbatch {script_path}')
+                else:
+                    logger.warning(f'Skipping existing job script (use --overwrite to replace): {script_path}')
 
         else:
             logger.info('Skipping: %s' % inst_dir)
