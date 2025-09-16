@@ -21,6 +21,7 @@ from gensvc.misc import utils
 from gensvc.misc.config import config
 from gensvc.data import illumina
 
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -253,6 +254,10 @@ def run_setup_transfer(args):
 def run_transfer(args):
     pass
 
+def cli_bclconvert(args):
+    from gensvc.wrappers import bclconvert
+    return bclconvert.cli(args)
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -430,40 +435,107 @@ def get_parser():
     # ============================================================
     # Convert BCL files to FASTQ.
     # ============================================================
-    parse_converter = subparsers.add_parser(
-        'convert', 
+    parser_bcl2fastq = subparsers.add_parser(
+        'bcl2fastq', 
         help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parse_converter.set_defaults(func=run_bcl2fastq)
-    parse_converter.add_argument(
+    parser_bcl2fastq.set_defaults(func=run_bcl2fastq)
+    parser_bcl2fastq.add_argument(
         '-r', '--runfolder-dir',
         action='store',
         type=pathlib.Path,
         help='Path to sequencing run.'
     )
-    parse_converter.add_argument(
+    parser_bcl2fastq.add_argument(
         '-s', '--sample-sheet',  
         action='store',
         type=pathlib.Path,
         help='Path to sample sheet.'
     )
-    parse_converter.add_argument(
+    parser_bcl2fastq.add_argument(
         '-o', '--output-dir',  
         action='store',
         type=pathlib.Path,
         help='Path to output directory.'
     )
-    parse_converter.add_argument(
+    parser_bcl2fastq.add_argument(
         '-t', '--processing-threads',  
         action='store',
         type=int,
         help='Number of threads to use.'
     )
-    parse_converter.add_argument(
+    parser_bcl2fastq.add_argument(
         '-b', '--sbatch',  
         action='store_true',
         help='Submit bcl2fastq job to Slurm using `sbatch`.'
+    )
+
+    # ============================================================
+    # Convert BCL files to FASTQ.
+    # ============================================================
+    parser_bclconvert = subparsers.add_parser(
+        'bclconvert', 
+        help='Convert BCL files to FASTQ using Illumina\'s BCLConvert.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser_bclconvert.set_defaults(func=cli_bclconvert)
+    parser_bclconvert.add_argument(
+        '--path-to-bclconvert-exe',
+        action='store',
+        type=Path,
+        default=None
+    )
+    parser_bclconvert.add_argument(
+        '--bcl-input-directory',
+        action='store',
+        type=Path,
+        default=None
+    )
+    parser_bclconvert.add_argument(
+        '--output-directory',
+        action='store',
+        default=None
+    )
+    parser_bclconvert.add_argument(
+        '--sample-sheet',
+        action='store',
+        default='SampleSheet.csv'
+    )
+    parser_bclconvert.add_argument(
+        '--bcl-sampleproject-subdirectories',
+        action='store_true',
+        default=True
+    )
+    parser_bclconvert.add_argument(
+        '--sample-name-column-enabled',
+        action='store_true',
+        default=True
+    )
+    parser_bclconvert.add_argument(
+        '--output-legacy-stats',
+        action='store_true',
+        default=True
+    )
+    parser_bclconvert.add_argument(
+        '--dump',
+        action='store_true',
+        default=False
+    )
+    parser_bclconvert.add_argument(
+        '--run',
+        action='store_true',
+        default=False
+    )
+    parser_bclconvert.add_argument(
+        '--sbatch',
+        action='store_true',
+        default=False
+    )
+    parser_bclconvert.add_argument(
+        '--srun',
+        action='store_true',
+        default=False
     )
 
     # ============================================================
