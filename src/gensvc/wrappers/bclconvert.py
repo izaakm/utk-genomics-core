@@ -18,7 +18,7 @@ from gensvc.misc.config import config
 # #SBATCH --mail-user=OIT_HPSC_Genomics@utk.edu
 
 slurm = Slurm(
-    job_name='gensvc-convert',
+    job_name='bclconvert',
     account='ISAAC-UTK0192',
     nodes=1,
     ntasks=1,
@@ -26,7 +26,7 @@ slurm = Slurm(
     partition='short',
     qos='short',
     time='0-03:00:00',
-    output='%x-%j.o',
+    output='bclconvert-%j.o',
     mail_type='ALL',
     mail_user='bcs@utk.edu'
 )
