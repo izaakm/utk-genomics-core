@@ -7,6 +7,7 @@ LOCAL_BIN = $(shell pwd -P)/bin
 SRC_SCRIPTS := $(shell find $(LOCAL_SRC) -maxdepth 1 -type f -name '*.sh' -perm -a=x -print)
 BIN_SCRIPTS := $(patsubst $(LOCAL_SRC)/%,$(LOCAL_BIN)/%,$(SRC_SCRIPTS))
 
+CODEBOOKS_HOME ?= $(HOME)/codebooks
 CODEBOOKS_SRC := $(shell find $(CODEBOOKS_HOME) -maxdepth 1 -type d -name '*gensvc*' -or -name '*genomics-core*')
 CODEBOOKS_DST := $(subst $(CODEBOOKS_HOME),codebooks,$(CODEBOOKS_SRC))
 
