@@ -21,14 +21,22 @@ slurm = Slurm(
     job_name='gensvc-convert',
     account='ISAAC-UTK0192',
     nodes=1,
-    ntasks_per_node=48,
-    exclusive='mcs',
+    ntasks=1,
+    cpus_per_task=48,
     partition='short',
     qos='short',
     time='0-03:00:00',
-    output='%x-%j.o'
+    output='%x-%j.o',
+    mail_type='ALL',
+    mail_user='bcs@utk.edu'
 )
 slurm.set_shell('/bin/bash -l')
+slurm.add_cmd('set -e')
+slurm.add_cmd('set -u')
+slurm.add_cmd('set -o pipefail')
+slurm.add_cmd('umask 002')
+slurm.add_cmd('ulimit -n 16384')
+
 
 class BCLConvert:
     def __init__(self,
@@ -164,10 +172,12 @@ def cli(args):
     run_id = args.bcl_input_directory.name
 
     if args.output_directory is None:
+        # Use defaults.
         proc_dir = config.GENSVC_PROCDATA / run_id
         args.output_directory =  proc_dir / 'BCLConvert'
         job_file = proc_dir / 'bclconvert.sh'
     else:
+        proc_dir = args.output_directory.name
         job_file = None
 
     # print(args)
@@ -183,6 +193,7 @@ def cli(args):
     )
 
     if args.dump:
+        print(slurm)
         print(bclconvert)
 
     if args.run:
