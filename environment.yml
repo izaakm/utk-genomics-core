@@ -2,12 +2,12 @@ name: utk-genomics-core
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - biopython
   - ca-certificates
   - certifi
   - ipykernel
+  - jinja2
   - lxml
   - mamba
   - multiqc
