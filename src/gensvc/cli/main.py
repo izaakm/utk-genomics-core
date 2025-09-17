@@ -242,25 +242,32 @@ def extract_bcl2fastq_stats(args):
     return 0
 
 
-def run_setup_transfer(args):
-    procdata = sequencing_run.ProcessedData(path=args.dirname)
-    logger.debug(procdata)
-
-    transfer.setup_transfer(
-        procdir=procdata.path,
-        dry_run=args.dry_run
-    )
+# def run_setup_transfer(args):
+#     procdata = sequencing_run.ProcessedData(path=args.dirname)
+#     logger.debug(procdata)
+#
+#     transfer.setup_transfer(
+#         procdir=procdata.path,
+#         dry_run=args.dry_run
+#     )
 
 def run_transfer(args):
     pass
 
 def cli_bclconvert(args):
     from gensvc.wrappers import bclconvert
-    return bclconvert.cli(args)
+    _ = bclconvert.cli(args)
+    return 0
 
 def cli_extract_bclconvert_stats(args):
     from gensvc.core_facility import postprocess
-    return postprocess.cli_extract_bclconvert_stats(args)
+    _ = postprocess.cli_extract_bclconvert_stats(args)
+    return 0
+
+def cli_setup_transfer_dirs(args):
+    from gensvc.core_facility import transfer
+    _ = transfer.cli_setup_transfer_dirs(args)
+    return 0
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -566,59 +573,59 @@ def get_parser():
     )
 
     # ============================================================
-    # Trasfer data to user's project directory.
+    # Set up transfer directories and scripts.
     # ============================================================
-    parse_setup_transfer = subparsers.add_parser(
-        'setup_transfer', 
-        help='Set up data for tranfer.',
+    parser_setup_transfer_dirs = subparsers.add_parser(
+        'setup-transfer', 
+        help='Set up transfer directories and corresponding scripts.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parse_setup_transfer.set_defaults(func=run_setup_transfer)
-    parse_setup_transfer.add_argument(
-        'dirname',  
+    parser_setup_transfer_dirs.set_defaults(func=cli_setup_transfer_dirs)
+    parser_setup_transfer_dirs.add_argument(
+        'procdir',  
         action='store',
-        type=str,
+        type=Path,
         help='The path to the processed data directory.'
     )
-    parse_setup_transfer.add_argument(
+    parser_setup_transfer_dirs.add_argument(
         '-s', '--sbatch',  
         action='store_true',
         help='Run transfer as a Slurm job.'
     )
 
-    # ============================================================
-    # Trasfer data to user's project directory.
-    # ============================================================
-    parse_transfer = subparsers.add_parser(
-        'transfer', 
-        help='Transfer results to project directory.'
-    )
-    parse_transfer.set_defaults(func=run_transfer)
-    parse_transfer.add_argument(
-        'runid',  
-        action='store',
-        type=str,
-        help='The <runid> of the sequencing run.'
-    )
-    parse_transfer.add_argument(
-        '-f', '--from',  
-        dest='source',
-        action='store',
-        type=pathlib.Path,
-        help='Path to transfer source directory.'
-    )
-    parse_transfer.add_argument(
-        '-t', '--to',  
-        dest='destination',
-        action='store',
-        type=pathlib.Path,
-        help='Path to transfer destination directory.'
-    )
-    parse_transfer.add_argument(
-        '-s', '--sbatch',  
-        action='store_true',
-        help='Run transfer as a Slurm job.'
-    )
+    # # ============================================================
+    # # Trasfer data to user's project directory.
+    # # ============================================================
+    # parse_transfer = subparsers.add_parser(
+    #     'transfer', 
+    #     help='Transfer results to project directory.'
+    # )
+    # parse_transfer.set_defaults(func=run_transfer)
+    # parse_transfer.add_argument(
+    #     'runid',  
+    #     action='store',
+    #     type=str,
+    #     help='The <runid> of the sequencing run.'
+    # )
+    # parse_transfer.add_argument(
+    #     '-f', '--from',  
+    #     dest='source',
+    #     action='store',
+    #     type=pathlib.Path,
+    #     help='Path to transfer source directory.'
+    # )
+    # parse_transfer.add_argument(
+    #     '-t', '--to',  
+    #     dest='destination',
+    #     action='store',
+    #     type=pathlib.Path,
+    #     help='Path to transfer destination directory.'
+    # )
+    # parse_transfer.add_argument(
+    #     '-s', '--sbatch',  
+    #     action='store_true',
+    #     help='Run transfer as a Slurm job.'
+    # )
 
     # ============================================================
     # Archive
