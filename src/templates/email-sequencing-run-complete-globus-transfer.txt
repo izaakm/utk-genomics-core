@@ -1,0 +1,39 @@
+From: jmill165 <izaak@utk.edu>
+Subject: UTK Genomics Sequencing Run {{ date }} ({{ run_id }})
+Date: 2024-04-17 at 12:04:43 EDT
+Cc: OIT_HPSC_Genomics <OIT_HPSC_Genomics@utk.edu>, Genomics Core Lab <genomicscore@utk.edu>
+
+Hello,
+The data from your recent sequencing run at the UT Genomics Core is now available via Globus. You should have received an email from Globus with instructions on accessing the results of your recent sequencing run.
+
+The summary statistics for this sequencing run are in the "SummaryStatistics" subdirectory.
+
+With Globus, you can transfer data directly to your local computer, UTK Google Drive, or UTK OneDrive. More details are available on our "Data Transfer on ISAAC-NG" page (URL below) in the sections about Globus.
+
+https://oit.utk.edu/hpsc/isaac-open-enclave-new-kpb/data-transfer-new-cluster-kpb-2/
+
+If you have any questions, please contact us; we'll gladly help. We also have office hours:
+
+- Tuesdays 11 AM - 12 PM via Zoom (https://tennessee.zoom.us/j/97710925129)
+- Thursdays 11 AM - 12 PM via Zoom (https://tennessee.zoom.us/j/97710925129)
+
+Thank you!
+
+See also:
+
+How To Log In and Transfer Files with Globus
+https://docs.globus.org/how-to/get-started/
+
+
+--
+Izaak Miller
+Bioinformatics Computing Support
+High Performance & Scientific Computing
+Office of Innovative Technologies
+
+izaak@utk.edu
+865-974-3770
+https://oit.utk.edu/hpsc/overview/bioinformatics-computing-support/
+
+Sign up for the UT Bioinformatics Monthly Newsletter!
+https://tiny.utk.edu/BioinformaticsNewsletter

@@ -1,0 +1,30 @@
+From: jmill165 <izaak@utk.edu>
+Subject: UTK Genomics Sequencing Run {{ date }} ({{ run_id }})
+Date: 2024-04-17 at 10:47:08 EDT
+Cc: OIT_HPSC_Genomics <OIT_HPSC_Genomics@utk.edu>, Genomics Core Lab <genomicscore@utk.edu>
+
+Hello,
+The data from your recent sequencing run at the UT Genomics Core is now available on ISAAC in the directory below. The summary statistics for this sequencing run are in the "SummaryStatistics" subdirectory.
+
+{{ path_to_data }}
+
+Please contact us if you have any questions; we'll be glad to help. We also have office hours:
+
+- Tuesdays 11 AM - 12 PM via Zoom (https://tennessee.zoom.us/j/97710925129)
+- Thursdays 11 AM - 12 PM via Zoom (https://tennessee.zoom.us/j/97710925129)
+
+Thank you!
+
+
+--
+Izaak Miller
+Bioinformatics Computing Support
+High Performance & Scientific Computing
+Office of Innovative Technologies
+
+izaak@utk.edu
+865-974-3770
+https://oit.utk.edu/hpsc/overview/bioinformatics-computing-support/
+
+Sign up for the UT Bioinformatics Monthly Newsletter!
+https://tiny.utk.edu/BioinformaticsNewsletter
