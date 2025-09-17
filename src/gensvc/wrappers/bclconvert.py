@@ -1,4 +1,6 @@
+import json
 import os
+import pandas as pd
 import subprocess
 
 from simple_slurm import Slurm
@@ -163,6 +165,151 @@ class BCLConvert:
 
     def sbatch(self, *args, **kwargs):
         slurm.sbatch(self.cmdlist, *args, **kwargs)
+
+
+def extract_tables(statsdir):
+    '''
+    Helper function for `extract_tables_from_legacy_stats()`.
+    '''
+    tables = {}
+    p = list(statsdir.rglob('all/all/all/lane.html'))[0]
+    data = pd.read_html(p)
+    # len(data)
+
+    # data[0]
+    tables['main_flowcell_summary'] = data[1]
+    tables['main_lane_summary'] = data[2]
+
+    p = list(statsdir.rglob('all/all/all/laneBarcode.html'))[0]
+    data = pd.read_html(p)
+    # len(data)
+
+    # data[0]
+    try:
+        # print(data[1].columns)
+        tables['samples_flowcell_summary'] = data[1]
+    except:
+        pass
+    try:
+        # print(data[2].columns)
+        tables['samples_lane_summary'] = data[2]
+    except:
+        pass
+    try:
+        # print(data[3].columns)
+        tables['samples_top_unknown_barcodes'] = data[3]
+    except:
+        pass
+
+    return tables
+
+
+def get_sample_stats(sample_stats, lane_stats):
+    '''
+    sample_stats : Sample Demultiplex Results
+    lane_stats : Lane Conversion Results
+    '''
+
+    barcode_sequence = sample_stats['IndexMetrics'][0]['IndexSequence']
+    sample_nreads = sample_stats['NumberReads']
+    if sample_nreads > 0:
+        lane_nclusters = lane_stats['TotalClustersPF']
+        percent_lane = (sample_nreads / lane_nclusters)*100
+        percent_perfect_barcode = sample_stats['IndexMetrics'][0]['MismatchCounts']['0'] / sample_stats['NumberReads'] * 100
+        percent_mismatch_barcode = sample_stats['IndexMetrics'][0]['MismatchCounts']['1'] / sample_stats['NumberReads'] * 100
+        yield_mbases = round(sample_stats['Yield'] / 1000000)
+
+        # Percent bases w/ Q30
+        y0 = sample_stats['ReadMetrics'][0]['YieldQ30'] / sample_stats['ReadMetrics'][0]['Yield']
+        y1 = sample_stats['ReadMetrics'][1]['YieldQ30'] / sample_stats['ReadMetrics'][1]['Yield']
+        percent_q30 = ((y0+y1)/2)*100
+
+        # Mean Quality score
+        q0 = sample_stats['ReadMetrics'][0]['QualityScoreSum'] / sample_stats['ReadMetrics'][0]['Yield']
+        q1 = sample_stats['ReadMetrics'][1]['QualityScoreSum'] / sample_stats['ReadMetrics'][1]['Yield']
+        mean_quality = (q0+q1)/2
+
+    else:
+        lane_nclusters = 0
+        percent_lane = 'NA'
+        percent_perfect_barcode = 'NA'
+        percent_mismatch_barcode = 'NA'
+        yield_mbases = 'NA'
+        percent_q30 = 'NA'
+        mean_quality = 'NA'
+
+    row = {
+        'Project': '',
+        'Sample': sample_stats['SampleName'],
+        'Barcode sequence': barcode_sequence,
+        'PF Clusters': sample_nreads,
+        '% of the lane': percent_lane,
+        '% Perfect barcode': percent_perfect_barcode,
+        '% One mismatch barcode': percent_mismatch_barcode,
+        'Yield (Mbases)': yield_mbases,
+        # '% PF Clusters': 'Always 100???',
+        '% >= Q30 bases': percent_q30,
+        'Mean Quality Score': mean_quality
+    }
+    return row
+
+
+def make_samples_lane_summary(statsdata):
+    '''
+    Helper function for `extract_tables_from_legacy_stats()`.
+    '''
+    demux_data = []
+    for lane_number, lane in enumerate(statsdata['ConversionResults'], start=1):
+        # print(lane_number)
+        for sample in lane['DemuxResults']:
+            # print(sample['SampleName'])
+            demux_data.append(get_sample_stats(sample_stats=sample, lane_stats=lane))
+    demux_df = pd.DataFrame(demux_data)
+    return demux_df
+
+
+def get_top_unknown_barcodes(statsdata, n=10):
+    top_ubarcodes = []
+    for lane in statsdata['UnknownBarcodes']:
+        # print(lane['Lane'])
+        # print(lane.keys())
+
+        b = lane['Barcodes']
+
+        t = pd.Series(b)
+        t.name = 'Count' # Will be coerced to column name.
+        t = t.to_frame()
+        t = t.reset_index(names=['Sequence'])
+        t['Lane'] = lane['Lane']
+        top_ubarcodes.append(t.sort_values('Count', ascending=False).head(10).copy())
+
+    table = pd.concat(top_ubarcodes).reset_index(drop=True)
+    table = table[['Lane', 'Count', 'Sequence']]
+    return table
+
+
+def extract_tables_from_legacy_stats(bclconvert_directory):
+    '''
+    Extract stats tables from a BCL Convert legacy reports.
+    '''
+    statsdir = bclconvert_directory / 'Reports/legacy'
+    # logging.debug(f'statsdir={statsdir}')
+
+    # Scrape tables from html files in the Reports directory.
+    tables = extract_tables(statsdir)
+    # logging.debug(f'Found {len(tables)} tables.')
+
+    # Load stats data.
+    with open(statsdir / 'Stats/Stats.json') as f:
+        statsdata = json.load(f)
+
+    tables['stats_lane_summary'] = make_samples_lane_summary(statsdata)
+
+    # Get unknown barcodes
+    tables['stats_top_unknown_barcodes'] = get_top_unknown_barcodes(statsdata, n=10)
+
+    return tables
+
 
 
 def cli(args):
