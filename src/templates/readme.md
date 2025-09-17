@@ -1,10 +1,11 @@
 # UTK Genomics Core Sequencing data
 
+For questions regarding sequencing and library preparation, please contact the
+Genomics Core Facility at <genomicscore@utk.edu>. For questions regarding data
+transfer or downstream bioinformatic analysis, contact OIT HPSC Bioinformatics
+Computing Support at <bcs@utk.edu>.
+
 **Methods**
-
-Please contact the genomics at <genomicscore@utk.edu> for specific information
-on library prep and instrument set up methods. 
-
 
 Fastq files were generated with the Illumina BCL Convert(tm) software, which
 converts the Binary Base Call (BCL) files produced by Illumina(tm) instruments
@@ -20,15 +21,15 @@ versions.
 	  
 **Acknowledgements**
 
-Acknowledging the Genomics Core in publications using data produced here helps
-the Core maintain internal funding. Please consider acknowledging the Core
-either in the Methods section or Acknowledgements section of your publications
-with text such as: 
+Acknowledging the Genomics Core and OIT HPSC in publications using data
+produced here helps maintain internal funding for those services. Please
+consider acknowledging the Core and HPSC in the Methods and/or Acknowledgements
+section(s) of your publications. Example text is included below.
 
-> Sequencing was performed on the Illumina iSeq/NextSeq/NovaSeq at the
-> University of Tennessee Genomics Core.
+> Sequencing was performed on the Illumina [iSeq|NextSeq|NovaSeq] at the
+> University of Tennessee Genomics Core Facility.
 
 > A portion of the computational work was performed in collaboration with High
 > Performance and Scientific Computing (HPSC) staff at the University of
-> Tennessee, Knoxville, on the Infrastructure for Scientific Applications and
-> Advanced Computing (ISAAC) Next Generation cluster.
+> Tennessee, Knoxville, using the "Infrastructure for Scientific Applications
+> and Advanced Computing -- Next Generation" (ISAAC-NG) cluster.
