@@ -2,6 +2,8 @@ import pathlib
 import os
 
 
+__package_root__ = pathlib.Path(__file__).parent.parent.resolve()
+
 class Config:
     '''
     GENSVC_DATADIR=/Users/jmill165/data/mirrors/gensvc
@@ -20,6 +22,7 @@ class Config:
     _GENSVC_TRASH_DIR = os.getenv('GENSVC_TRASH_DIR')
     _GENSVC_UTSTOR_DIR = os.getenv('GENSVC_UTSTOR_DIR')
     _SLURM_SUBMIT = False
+    _templates = __package_root__.parent / 'templates'
 
     @property
     def DEBUG(self):
@@ -95,6 +98,10 @@ class Config:
     @property
     def SLURM_SUBMIT(self):
         return self._SLURM_SUBMIT
+
+    @property
+    def templates(self):
+        return self._templates
 
 config = Config()
 
