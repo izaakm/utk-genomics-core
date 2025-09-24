@@ -321,6 +321,8 @@ def cli(args):
 
     if args.output_directory is None:
         # Use defaults.
+        if not config.GENSVC_PROCDATA.exists():
+            raise ValueError(f"GENSVC_PROCDATA directory does not exist: {config.GENSVC_PROCDATA}")
         output_parent = config.GENSVC_PROCDATA / run_id
         output_directory =  output_parent / 'BCLConvert'
         job_file = output_parent / 'bclconvert.sh'
