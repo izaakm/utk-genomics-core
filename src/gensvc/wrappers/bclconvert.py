@@ -329,6 +329,7 @@ def cli(args):
         output_parent = output_directory.name
         job_file = None
 
+    args.output_directory = output_directory
     # print(args)
     
     bclconvert = BCLConvert(
