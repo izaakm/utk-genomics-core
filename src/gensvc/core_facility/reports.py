@@ -1,16 +1,17 @@
-import re
+import logging
+import os
+import pandas as pd
 import pathlib
+import re
 import sys
 import warnings
-import logging
-import pandas as pd
 
 # from gensvc.misc import sequencing_run, utils
 # from gensvc.data import sequencing_run
 
 from gensvc.misc import utils
 from gensvc.data import illumina
-from gensvc.data.illumina import IlluminaSequencingData
+# from gensvc.data.illumina import IlluminaSequencingData
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,65 @@ def list_runs(data, long=False, sep=None, transpose=False, as_dataframe=False):
         return table.to_string(index=index, header=header, na_rep='-')
     else:
         return table.to_csv(index=index, header=header, sep=sep, na_rep='-')
+
+
+def cli_list(args):
+    '''
+    List info for sequencing runs or sample sheets. Possible inputs:
+
+    - A directory containing sequencing runs.
+    - A sequencing run directory.
+    - A sample sheet.
+    '''
+    sample_sheets = []
+    run_dirs = []
+    info = []
+    for path in args.pathlist:
+        if not os.path.exists(path):
+            sys.tracebacklimit = 0
+            raise FileNotFoundError(f'Path does not exist: {path}')
+        if illumina.looks_like_samplesheet(path):
+            logger.debug(f'Found sample sheet: {path}')
+            sample_sheets.append(path)
+        elif os.path.isdir(path):
+            if illumina.is_runid(os.path.basename(path)):
+                logger.debug(f'Found runid: {path}')
+                run_dirs.append(path)
+            else:
+                for rundir in find_seq_runs(path):
+                    run_dirs.append(rundir)
+
+    for path in sample_sheets:
+        try:
+            sample_sheet = illumina.read_sample_sheet(path)
+            info.append(sample_sheet.info)
+        except Exception as e:
+            logger.debug(f'Error reading {path}: {e}')
+            continue
+
+    for path in run_dirs:
+        try:
+            seqrun = illumina.IlluminaSequencingData(path)
+        except Exception as e:
+            logger.debug(f'Error reading {path}: {e}')
+            continue
+        if not seqrun.path_to_samplesheet.exists():
+            sample_sheets = find_samplesheets(path)
+            if len(sample_sheets) == 1:
+                seqrun.path_to_samplesheet = sample_sheets[0]
+            elif len(sample_sheets) > 1:
+                logger.debug(f'Multiple sample sheets found in {path}')
+                continue
+        info.append(seqrun.info)
+    # The 'table' is a string.
+    table = list_runs(
+        info,
+        long=args.long,
+        transpose=args.transpose,
+        sep=args.sep
+    )
+    print(table)
+    return 0
 
 
 # END
