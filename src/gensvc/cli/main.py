@@ -479,11 +479,13 @@ def get_parser():
     parser_bclconvert.add_argument(
         '--output-directory',
         action='store',
+        type=Path,
         default=None
     )
     parser_bclconvert.add_argument(
         '--sample-sheet',
         action='store',
+        type=Path,
         default='SampleSheet.csv'
     )
     parser_bclconvert.add_argument(
