@@ -1,3 +1,4 @@
+import pathlib
 import json
 import os
 import pandas as pd
@@ -320,11 +321,12 @@ def cli(args):
 
     if args.output_directory is None:
         # Use defaults.
-        proc_dir = config.GENSVC_PROCDATA / run_id
-        args.output_directory =  proc_dir / 'BCLConvert'
-        job_file = proc_dir / 'bclconvert.sh'
+        output_parent = config.GENSVC_PROCDATA / run_id
+        output_directory =  output_parent / 'BCLConvert'
+        job_file = output_parent / 'bclconvert.sh'
     else:
-        proc_dir = args.output_directory.name
+        output_directory = args.output_directory
+        output_parent = output_directory.name
         job_file = None
 
     # print(args)
@@ -344,11 +346,11 @@ def cli(args):
         print(bclconvert)
 
     if args.run:
-        proc_dir.mkdir(parents=True, exist_ok=True)
+        output_parent.mkdir(parents=True, exist_ok=True)
         bclconvert.run()
     elif args.srun:
-        proc_dir.mkdir(parents=True, exist_ok=True)
+        output_parent.mkdir(parents=True, exist_ok=True)
         slurm.srun(bclconvert.cmd)
     elif args.sbatch:
-        proc_dir.mkdir(parents=True, exist_ok=True)
+        output_parent.mkdir(parents=True, exist_ok=True)
         slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
