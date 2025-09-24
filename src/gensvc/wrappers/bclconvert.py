@@ -328,7 +328,7 @@ def cli(args):
         job_file = output_parent / 'bclconvert.sh'
     else:
         output_directory = args.output_directory
-        output_parent = output_directory.name
+        output_parent = output_directory.parent
         job_file = None
 
     args.output_directory = output_directory
@@ -343,6 +343,13 @@ def cli(args):
         sample_name_column_enabled=args.sample_name_column_enabled,
         output_legacy_stats=args.output_legacy_stats
     )
+
+    # Debug.
+    # print(args)
+    # print(config)
+    # print(config.GENSVC_PROCDATA, type(config.GENSVC_PROCDATA))
+    # print(output_parent, type(output_parent))
+    # print(output_directory, type(output_parent))
 
     if args.dump:
         print(slurm)
