@@ -6,20 +6,22 @@ Helper for working with data from the Genomics Core.
 '''
 
 # Python standard library
-import pathlib
+# import pathlib
 import argparse
 import sys
-import os
-import tempfile
+# import os
+# import tempfile
 import logging
-import pandas as pd
+# import pandas as pd
 
-from gensvc.wrappers import bcl2fastq, slurm
-from gensvc.core_facility import reports, transfer, archive, trash
+# from gensvc.wrappers import bcl2fastq, slurm
+# from gensvc.core_facility import reports, transfer, archive, trash
+from gensvc.core_facility import archive
+from gensvc.core_facility import trash
 # from gensvc.misc import config, utils
-from gensvc.misc import utils
+# from gensvc.misc import utils
 from gensvc.misc.config import config
-from gensvc.data import illumina
+# from gensvc.data import illumina
 
 from pathlib import Path
 
@@ -155,91 +157,39 @@ def cli_sample_sheet(args):
     print(sample_sheet.to_csv())
 
 
-def run_list(args):
-    '''
-    List info for sequencing runs or sample sheets. Possible inputs:
-
-    - A directory containing sequencing runs.
-    - A sequencing run directory.
-    - A sample sheet.
-    '''
-    sample_sheets = []
-    run_dirs = []
-    info = []
-    for path in args.pathlist:
-        if not os.path.exists(path):
-            sys.tracebacklimit = 0
-            raise FileNotFoundError(f'Path does not exist: {path}')
-        if illumina.looks_like_samplesheet(path):
-            logger.debug(f'Found sample sheet: {path}')
-            sample_sheets.append(path)
-        elif os.path.isdir(path):
-            if illumina.is_runid(os.path.basename(path)):
-                logger.debug(f'Found runid: {path}')
-                run_dirs.append(path)
-            else:
-                for rundir in reports.find_seq_runs(path):
-                    run_dirs.append(rundir)
-
-    for path in sample_sheets:
-        try:
-            sample_sheet = illumina.read_sample_sheet(path)
-            info.append(sample_sheet.info)
-        except Exception as e:
-            logger.debug(f'Error reading {path}: {e}')
-            continue
-
-    for path in run_dirs:
-        try:
-            seqrun = illumina.IlluminaSequencingData(path)
-        except Exception as e:
-            logger.debug(f'Error reading {path}: {e}')
-            continue
-        if not seqrun.path_to_samplesheet.exists():
-            sample_sheets = reports.find_samplesheets(path)
-            if len(sample_sheets) == 1:
-                seqrun.path_to_samplesheet = sample_sheets[0]
-            elif len(sample_sheets) > 1:
-                logger.debug(f'Multiple sample sheets found in {path}')
-                continue
-        info.append(seqrun.info)
-    # The 'table' is a string.
-    table = reports.list_runs(
-        info,
-        long=args.long,
-        transpose=args.transpose,
-        sep=args.sep
-    )
-    print(table)
-    return 0
+def cli_list(args):
+    from gensvc.core_facility.reports import cli_list
+    res = cli_list(args)
+    return res
 
 
-def run_bcl2fastq(args):
-    logger.debug(f'GENSVC_PROCDATA={config.GENSVC_PROCDATA}')
-    seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
-    # print(seqrun.info)
-    # seqrun.init_procdir()
 
-    # Do not use os.cpu_count() with sbatch.
-    # TODO Have the batch script get the number of cpus from the slurm environment.
-    command = bcl2fastq.bcl2fastq(
-        runfolder_dir=seqrun.realpath,
-        sample_sheet=args.sample_sheet or seqrun.path_to_samplesheet,
-        output_dir=args.output_dir or bcl2fastq.init_output_dir(config.GENSVC_PROCDATA, seqrun.runid),
-        processing_threads=args.processing_threads
-    )
-    if args.sbatch:
-        batch = slurm.Slurm(**slurm.default_kwargs)
-        print(batch)
-        print(command)
-    else:
-        print(command)
+# def run_bcl2fastq(args):
+#     logger.debug(f'GENSVC_PROCDATA={config.GENSVC_PROCDATA}')
+#     seqrun = sequencing_run.IlluminaSequencingData(args.runfolder_dir)
+#     # print(seqrun.info)
+#     # seqrun.init_procdir()
+#
+#     # Do not use os.cpu_count() with sbatch.
+#     # TODO Have the batch script get the number of cpus from the slurm environment.
+#     command = bcl2fastq.bcl2fastq(
+#         runfolder_dir=seqrun.realpath,
+#         sample_sheet=args.sample_sheet or seqrun.path_to_samplesheet,
+#         output_dir=args.output_dir or bcl2fastq.init_output_dir(config.GENSVC_PROCDATA, seqrun.runid),
+#         processing_threads=args.processing_threads
+#     )
+#     if args.sbatch:
+#         batch = slurm.Slurm(**slurm.default_kwargs)
+#         print(batch)
+#         print(command)
+#     else:
+#         print(command)
 
 
-def extract_bcl2fastq_stats(args):
-    tables = bcl2fastq.extract_stats(args.bcl2fastq_dir)
-    bcl2fastq.write_summary_stats(tables, args.outdir, dry_run=args.dry_run)
-    return 0
+# def extract_bcl2fastq_stats(args):
+#     tables = bcl2fastq.extract_stats(args.bcl2fastq_dir)
+#     bcl2fastq.write_summary_stats(tables, args.outdir, dry_run=args.dry_run)
+#     return 0
 
 
 # def run_setup_transfer(args):
@@ -313,7 +263,7 @@ def get_parser():
         '--from', '-f',
         dest='src_sample_sheet',  # `from` is a reserved word.
         action='store',
-        type=pathlib.Path,
+        type=Path,
         help='Initialize new sample sheet from the given sample sheet.'
     )
     parse_sample_sheet.add_argument(
@@ -437,7 +387,7 @@ def get_parser():
         help='List sequencing runs in the given director',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parse_reports.set_defaults(func=run_list)
+    parse_reports.set_defaults(func=cli_list)
     parse_reports.add_argument(
         'pathlist',  
         default=[
@@ -466,44 +416,44 @@ def get_parser():
         help='Transpose the table.'
     )
 
-    # ============================================================
-    # Convert BCL files to FASTQ.
-    # ============================================================
-    parser_bcl2fastq = subparsers.add_parser(
-        'bcl2fastq', 
-        help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser_bcl2fastq.set_defaults(func=run_bcl2fastq)
-    parser_bcl2fastq.add_argument(
-        '-r', '--runfolder-dir',
-        action='store',
-        type=pathlib.Path,
-        help='Path to sequencing run.'
-    )
-    parser_bcl2fastq.add_argument(
-        '-s', '--sample-sheet',  
-        action='store',
-        type=pathlib.Path,
-        help='Path to sample sheet.'
-    )
-    parser_bcl2fastq.add_argument(
-        '-o', '--output-dir',  
-        action='store',
-        type=pathlib.Path,
-        help='Path to output directory.'
-    )
-    parser_bcl2fastq.add_argument(
-        '-t', '--processing-threads',  
-        action='store',
-        type=int,
-        help='Number of threads to use.'
-    )
-    parser_bcl2fastq.add_argument(
-        '-b', '--sbatch',  
-        action='store_true',
-        help='Submit bcl2fastq job to Slurm using `sbatch`.'
-    )
+    # # ============================================================
+    # # Convert BCL files to FASTQ.
+    # # ============================================================
+    # parser_bcl2fastq = subparsers.add_parser(
+    #     'bcl2fastq', 
+    #     help='Convert BCL files to FASTQ using Illumina\'s bcl2fastq.',
+    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    # )
+    # parser_bcl2fastq.set_defaults(func=run_bcl2fastq)
+    # parser_bcl2fastq.add_argument(
+    #     '-r', '--runfolder-dir',
+    #     action='store',
+    #     type=Path,
+    #     help='Path to sequencing run.'
+    # )
+    # parser_bcl2fastq.add_argument(
+    #     '-s', '--sample-sheet',  
+    #     action='store',
+    #     type=Path,
+    #     help='Path to sample sheet.'
+    # )
+    # parser_bcl2fastq.add_argument(
+    #     '-o', '--output-dir',  
+    #     action='store',
+    #     type=Path,
+    #     help='Path to output directory.'
+    # )
+    # parser_bcl2fastq.add_argument(
+    #     '-t', '--processing-threads',  
+    #     action='store',
+    #     type=int,
+    #     help='Number of threads to use.'
+    # )
+    # parser_bcl2fastq.add_argument(
+    #     '-b', '--sbatch',  
+    #     action='store_true',
+    #     help='Submit bcl2fastq job to Slurm using `sbatch`.'
+    # )
 
     # ============================================================
     # Convert BCL files to FASTQ.
@@ -657,7 +607,7 @@ def get_parser():
     parse_trash.add_argument(
         '--output', '-o',
         action='store',
-        type=pathlib.Path,
+        type=Path,
         default=None,
         help='Path to output script file. If not provided, script is printed to stdout.'
     )
