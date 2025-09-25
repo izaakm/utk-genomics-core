@@ -42,8 +42,33 @@ slurm.add_cmd('ulimit -n 16384')
 
 
 class BCLConvert:
+    '''
+    Wrapper for Illumina BCL Convert command line tool. Non-standard options
+    are accessed as attributes that are named with a trailing underscore, e.g.,
+    `executable_filepath_`. Standard BCL Convert options are accessed as normal
+    attributes. 
+
+    Parameters
+    ----------
+    bcl_input_directory : str or pathlib.Path
+    ...
+    executable_filepath_ : str or pathlib.Path, optional
+    parent_directory_ : str or pathlib.Path, optional
+    ...
+
+    Comments
+    --------
+
+    - A BCL Convert job requires a sample sheet. The sample sheet contains two
+      things: sample metadata and settings for BCL Convert. This `BCLConvert`
+      class should keep track of all the settings needed to run BCL Convert. It
+      essentially 'owns' the sample sheet at the `sample_sheet` attribute. When
+      this object is initialized, it should read settings from the sample
+      sheet, and when any of the `run` methods are called, it should write the
+      settings back to the sample sheet.
+    '''
     def __init__(self,
-            path_to_executable=None,
+            executable_filepath=None,
             bcl_input_directory=None,
             output_directory=None,
             sample_sheet=None,
@@ -51,7 +76,7 @@ class BCLConvert:
             sample_name_column_enabled=True,
             output_legacy_stats=True
         ):
-        self._path_to_executable = path_to_executable
+        self._executable_filepath = executable_filepath
         self._bcl_input_directory = bcl_input_directory
         self._output_directory = output_directory
         self._sample_sheet = sample_sheet
@@ -63,12 +88,12 @@ class BCLConvert:
         return self.cmd
 
     @property
-    def path_to_executable(self):
-        return self._path_to_executable
+    def executable_filepath_(self):
+        return self._executable_filepath
 
-    @path_to_executable.setter
-    def path_to_executable(self, value):
-        self._path_to_executable = value
+    @executable_filepath_.setter
+    def executable_filepath_(self, value):
+        self._executable_filepath = value
 
     @property
     def bcl_input_directory(self):
@@ -126,7 +151,7 @@ class BCLConvert:
 
     @property
     def cmdlist(self):
-        cmd = [str(self._path_to_executable)]
+        cmd = [str(self._executable_filepath)]
 
         if self.bcl_input_directory:
             cmd += ['--bcl-input-directory', str(self.bcl_input_directory)]
@@ -335,7 +360,7 @@ def cli(args):
     # print(args)
     
     bclconvert = BCLConvert(
-        path_to_executable=args.path_to_bclconvert_exe,
+        executable_filepath=args.path_to_bclconvert_exe,
         bcl_input_directory=args.bcl_input_directory,
         output_directory=args.output_directory,
         sample_sheet=args.sample_sheet,
