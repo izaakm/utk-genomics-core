@@ -58,38 +58,46 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def write_table(df, path=None, index=False):
+def write_table(df, path=None, index=False, dry_run=False):
     if path is None:
         print(df.to_string(index=index))
         return None
+    elif dry_run:
+        logger.info(f'DRY RUN -> Would save table data to {path}')
+        return None
     else:
-        logging.debug(f'Saving table data to {path}')
+        logger.debug(f'Saving table data to {path}')
         return df.to_csv(path, index=index)
 
 
-def write_bclconvert_tables_from_legacy_stats(tables, outdir):
+def write_bclconvert_tables_from_legacy_stats(tables, outdir, dry_run=False):
 
     # All Lanes: These files are the ones that the Genomics Core will want to
     # look at. They contain summary stats for all sequences in all lanes.
     # outdir.mkdir(parents=True, exist_ok=True)
     out_all = outdir / 'all'
-    out_all.mkdir(parents=True, exist_ok=True)
+    if not dry_run:
+        out_all.mkdir(parents=True, exist_ok=True)
 
     write_table(
         tables['main_flowcell_summary'],
-        path=out_all / 'FlowcellSummary.csv'
+        path=out_all / 'FlowcellSummary.csv',
+        dry_run=dry_run
     )
     write_table(
         tables['main_lane_summary'],
-        path=out_all / 'LaneSummary.csv'
+        path=out_all / 'LaneSummary.csv',
+        dry_run=dry_run
     )
     write_table(
         tables['samples_lane_summary'],
-        path=out_all / 'SampleSummary.csv'
+        path=out_all / 'SampleSummary.csv',
+        dry_run=dry_run
     )
     write_table(
         tables['stats_top_unknown_barcodes'],
-        path=out_all / 'TopUnknownBarcodes.csv'
+        path=out_all / 'TopUnknownBarcodes.csv',
+        dry_run=dry_run
     )
 
     # Split Lanes: Each user's data is wholly contained in a subset of the
@@ -101,28 +109,32 @@ def write_bclconvert_tables_from_legacy_stats(tables, outdir):
         lanes = set(grp['Lane'])
         if outdir:
             out_project = outdir / name
-            out_project.mkdir(exist_ok=True)
+            if not dry_run:
+                out_project.mkdir(exist_ok=True)
         else:
             out_project = None
 
         # Sample Summary
         write_table(
             grp,
-            path=out_project / 'SampleSummary.csv'
+            path=out_project / 'SampleSummary.csv',
+            dry_run=dry_run
         )
 
         # Lane Summary
         mask = tables['main_lane_summary']['Lane'].isin(lanes)
         write_table(
             tables['main_lane_summary'].loc[mask],
-            path=out_project / 'LaneSummary.csv'
+            path=out_project / 'LaneSummary.csv',
+            dry_run=dry_run
         )
 
         # Top Unknown Barcodes
         mask = tables['stats_top_unknown_barcodes']['Lane'].isin(lanes)
         write_table(
             tables['stats_top_unknown_barcodes'].loc[mask],
-            path=out_project / 'TopUnknownBarcodes.csv'
+            path=out_project / 'TopUnknownBarcodes.csv',
+            dry_run=dry_run
         )
 
     return None
@@ -130,12 +142,49 @@ def write_bclconvert_tables_from_legacy_stats(tables, outdir):
 
 def cli_extract_bclconvert_stats(args):
     from gensvc.wrappers import bclconvert
+
+    # Initialize logger.
+    if args.verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+    
+    # Check for output directory.
     if args.outdir is None:
         outdir = args.bclconvert_directory.parent / 'SummaryStatistics'
     else:
         outdir = args.outdir
+
+    # Extract tables from legacy stats.
     tables = bclconvert.extract_tables_from_legacy_stats(args.bclconvert_directory)
-    write_bclconvert_tables_from_legacy_stats(tables, outdir)
+    write_bclconvert_tables_from_legacy_stats(tables, outdir, dry_run=args.dry_run)
+
+    # Create the "Suggested Barcodes" report.
+    bclconvert_reports = bclconvert.BCLConvertReports(args.bclconvert_directory / 'Reports')
+
+    demultiplex_stats = bclconvert_reports.load_demultiplex_stats()
+    top_unknown_barcodes = bclconvert_reports.load_top_unknown_barcodes()
+
+    suggested_barcodes = bclconvert.report_suggested_barcodes(
+        demultiplex_stats,
+        top_unknown_barcodes
+    )
+
+    if suggested_barcodes.empty:
+        logger.warning('No suggested barcodes found!')
+        # [TODO] The 'suggested_barcodes' function should return
+        # ('Sample_Project', 'NA') if there are no suggested barcodes instead
+        # of being empty.
+    else:
+        write_table(
+            suggested_barcodes,
+            path=outdir / 'all/SuggestedBarcodes.csv',
+            dry_run=args.dry_run
+        )
+
     return 0
+
 
 # END
