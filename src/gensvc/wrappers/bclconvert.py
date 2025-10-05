@@ -1,12 +1,14 @@
-import pathlib
 import json
+import numpy as np
 import os
 import pandas as pd
+import pathlib
 import subprocess
 
 from simple_slurm import Slurm
 
 from gensvc.misc.config import config
+from gensvc.data import illumina
 
 # Example sbatch directives:
 # #SBATCH --job-name=bcl-convert-$(basename $bcl_input_directory)
@@ -193,6 +195,140 @@ class BCLConvert:
         slurm.sbatch(self.cmdlist, *args, **kwargs)
 
 
+class BCLConvertReports:
+    '''
+    Reports/
+    ├── Adapter_Cycle_Metrics.csv
+    ├── Adapter_Metrics.csv
+    ├── Demultiplex_Stats.csv
+    ├── Demultiplex_Tile_Stats.csv
+    ├── fastq_list.csv
+    ├── Index_Hopping_Counts.csv
+    ├── IndexMetricsOut.bin
+    ├── legacy
+    │   ├── Reports
+    │   │   └── html
+    │   │       ├── HCVTGDRX7
+    │   │       │   ├── all
+    │   │       │   │   └── all
+    │   │       │   │       ├── all
+    │   │       │   │       │   ├── laneBarcode.html
+    │   │       │   │       │   └── lane.html
+    │   │       │   │       └── unknown
+    │   │       │   ├── default
+    │   │       │   │   ├── all
+    │   │       │   │   │   ├── all
+    │   │       │   │   │   │   ├── laneBarcode.html
+    │   │       │   │   │   │   └── lane.html
+    │   │       │   │   │   └── unknown
+    │   │       │   │   └── Undetermined
+    │   │       │   │       ├── all
+    │   │       │   │       │   ├── laneBarcode.html
+    │   │       │   │       │   └── lane.html
+    │   │       │   │       └── unknown
+    │   │       │   │           ├── laneBarcode.html
+    │   │       │   │           └── lane.html
+    │   │       │   └── <Sample_Project>
+    │   │       │       ├── all
+    │   │       │       │   ├── all
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   └── unknown
+    │   │       │       ├── <Sample_Name_1>
+    │   │       │       │   ├── all
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   ├── ATCTCAGG+AGAGGATA
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   └── unknown
+    │   │       │       ├── <Sample_Name_2>
+    │   │       │       │   ├── all
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   ├── ATCTCAGG+TACTCCTT
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   └── unknown
+    │   │       │       ├── <Sample_Name_3>
+    │   │       │       │   ├── all
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   ├── ATCTCAGG+AGGCTTAG
+    │   │       │       │   │   ├── laneBarcode.html
+    │   │       │       │   │   └── lane.html
+    │   │       │       │   └── unknown
+    │   │       │       └── <Sample_Name_4>
+    │   │       │           ├── all
+    │   │       │           │   ├── laneBarcode.html
+    │   │       │           │   └── lane.html
+    │   │       │           ├── ATCTCAGG+CGGAGAGA
+    │   │       │           │   ├── laneBarcode.html
+    │   │       │           │   └── lane.html
+    │   │       │           └── unknown
+    │   │       ├── index.html
+    │   │       ├── Report.css
+    │   │       └── tree.html
+    │   └── Stats
+    │       ├── AdapterTrimming.txt
+    │       ├── ConversionStats.xml
+    │       ├── DemultiplexingStats.xml
+    │       ├── DemuxSummaryF1L1.txt
+    │       ├── DemuxSummaryF1L2.txt
+    │       ├── FastqSummaryF1L1.txt
+    │       ├── FastqSummaryF1L2.txt
+    │       └── Stats.json
+    ├── Quality_Metrics.csv
+    ├── Quality_Tile_Metrics.csv
+    ├── RunInfo.xml
+    ├── SampleSheet.csv
+    └── Top_Unknown_Barcodes.csv
+    '''
+    def __init__(self, reports_dir):
+        self.reports_dir = pathlib.Path(reports_dir)
+
+    def ls(self):
+        return sorted([f.name for f in self.reports_dir.iterdir()])
+
+    def load_adapter_cycle_metrics(self):
+        return pd.read_csv(self.reports_dir / "Adapter_Cycle_Metrics.csv")
+
+    def load_adapter_metrics(self):
+        return pd.read_csv(self.reports_dir / "Adapter_Metrics.csv")
+
+    def load_demultiplex_stats(self):
+        return pd.read_csv(self.reports_dir / "Demultiplex_Stats.csv")
+
+    def load_demultiplex_tile_stats(self):
+        return pd.read_csv(self.reports_dir / "Demultiplex_Tile_Stats.csv")
+
+    def load_fastq_list(self):
+        return pd.read_csv(self.reports_dir / "fastq_list.csv")
+
+    def load_index_hopping_counts(self):
+        return pd.read_csv(self.reports_dir / "Index_Hopping_Counts.csv")
+
+    def load_quality_metrics(self):
+        return pd.read_csv(self.reports_dir / "Quality_Metrics.csv")
+
+    def load_quality_tile_metrics(self):
+        return pd.read_csv(self.reports_dir / "Quality_Tile_Metrics.csv")
+
+    def load_sample_sheet(self):
+        raise NotImplementedError("SampleSheet.csv parsing not implemented.")
+
+    def load_top_unknown_barcodes(self):
+        return pd.read_csv(self.reports_dir / "Top_Unknown_Barcodes.csv")
+
+    def get_legacy_stats(self):
+        return BCLConvertLegacyReports(self.reports_dir / "legacy")
+
+
+class BCLConvertLegacyReports:
+    def __init__(self, legacy_dir):
+        self.legacy_dir = pathlib.Path(legacy_dir)
+
+
 def extract_tables(statsdir):
     '''
     Helper function for `extract_tables_from_legacy_stats()`.
@@ -337,6 +473,120 @@ def extract_tables_from_legacy_stats(bclconvert_directory):
     return tables
 
 
+def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
+    '''
+    Check each index ("barcode") for each sample in the demultiplex stats
+    against the top unknown barcodes. If the index matches any of the unknown
+    barcodes in any reverse-complemented form, then report it along with the
+    counts of the original and the counts of the unknown barcode.
+
+    [TODO] Break up this function. Also, it should iterate over each
+    'Sample_Project' and set 'Sample_Name' to 'NA' if there are no samples
+    matching an unknown barcode.
+
+    Parameters
+    ----------
+    demultiplex_stats : pd.DataFrame
+        Lane         SampleID  Sample_Project      Sample_Name              Index    # Reads  # Perfect Index Reads  # One Mismatch Index Reads  # Two Mismatch Index Reads  % Reads  % Perfect Index Reads  % One Mismatch Index Reads  % Two Mismatch Index Reads
+           1  Sample_1_251001  Project_251001  Sample_1_251001  ATCTCAGG-TATCCTCT         92                      0                          92                           0      0.0                    0.0                         1.0                         0.0
+           1  Sample_2_251001  Project_251001  Sample_2_251001  ATCTCAGG-AAGGAGTA         40                      0                          40                           0      0.0                    0.0                         1.0                         0.0
+           1  Sample_3_251001  Project_251001  Sample_3_251001  ATCTCAGG-CTAAGCCT          1                      0                           1                           0      0.0                    0.0                         1.0                         0.0
+           1  Sample_4_251001  Project_251001  Sample_4_251001  ATCTCAGG-TCTCTCCG          0                      0                           0                           0      0.0                    0.0                         0.0                         0.0
+           1     Undetermined    Undetermined     Undetermined                NaN  500230507              500230507                           0                           0      1.0                    1.0                         0.0                         0.0
+           2 ...
+    top_unknown_barcodes: pd.DataFrame
+        Lane     index    index2    # Reads  % of Unknown Barcodes  % of All Reads
+           1  ATCTCAGG  CGGAGAGA  125580963               0.251046        0.251046
+           1  ATCTCAGG  TACTCCTT  112136682               0.224170        0.224170
+           1  ATCTCAGG  AGGCTTAG   92311141               0.184537        0.184537
+           1  ATCTCAGG  AGAGGATA   86030827               0.171982        0.171982
+           1  GGGGGGGG  AGATCTCG    7616589               0.015226        0.015226
+           ...
+
+    Returns
+    -------
+    pd.DataFrame
+        Lane  Sample_Project      Sample_Name            Barcode  Read_count Reverse_complement    Unknown_barcode  Unknown_barcode_ID  Unknown_read_count  Diff_count  Log2_FoldChange
+           1  Project_251001  Sample_1_251001  ATCTCAGG-TATCCTCT          92                 i5  ATCTCAGG-AGAGGATA                   1            86030827    86030735            19.83
+           2  Project_251001  Sample_1_251001  ATCTCAGG-TATCCTCT          93                 i5  ATCTCAGG-AGAGGATA                   1            85643023    85642930            19.81
+           1  Project_251001  Sample_2_251001  ATCTCAGG-AAGGAGTA          40                 i5  ATCTCAGG-TACTCCTT                   2           112136682   112136642            21.42
+           2  Project_251001  Sample_2_251001  ATCTCAGG-AAGGAGTA          46                 i5  ATCTCAGG-TACTCCTT                   2           112999614   112999568            21.23
+           1  Project_251001  Sample_3_251001  ATCTCAGG-CTAAGCCT           1                 i5  ATCTCAGG-AGGCTTAG                   3            92311141    92311140            26.46
+           ...
+    '''
+    # Data dictionary for output.
+    dictionary = {
+        'Barcode': 'The given barcode sequence from the sample sheet.',
+        'i7': 'The i7 portion of the given barcode sequence.',
+        'i5': 'The i5 portion of the given barcode sequence.',
+        'Diff_count': '`Unknown count` - `PF Clusters`',
+        'Lane': 'Lane on flow cell.',
+        'Log2_FoldChange': 'log2(`Unknown count` / `PF Clusters`) [Denominator is set to 1 if `PF Clusters` is 0.]',
+        'Reverse_complement': 'Method used to match the given barcode to the unknown barcode. One of: "i7", "i5", "both", "full".',
+        'Sample_Name': 'Name of sample.',
+        'Sample_Project': 'Name of project (same as `ProjectName` or `Sample_Project` column).',
+        'Unknown_barcode': 'A barcode sequence not present in the sample sheet.',
+        'Unknown_i7': 'The i7 portion of the `Unknown barcode`.',
+        'Unknown_i5': 'The i5 portion of the `Unknown barcode`.',
+        'Unknown_barcode_ID': 'Unique integer identifier for `Unknown barcode`.',
+        'Unknown_read_count': 'Count of reads assigned to that `Unknown barcode.`',
+        'Read_count': 'Number of reads (aka, "PF Clusters", Clusters passing filter, in legacy stats).'
+    }
+    # Store list of records for output.
+    records = []
+    # Keep track of barcodes with a unique integer ID.
+    barcode_ids = {}
+    bi = 1
+    # First, iterate over each lane.
+    lanes = sorted(set(demultiplex_stats['Lane']))
+    for lane in lanes:
+        # Get the sample summaries (demultiplex stats) for that lane.
+        summary = demultiplex_stats.query(f'Lane=={lane}')
+        # Get the "unknown" barcodes for that lane.
+        unknown_barcodes_lane = top_unknown_barcodes.query(f'Lane=={lane}')
+        # Next, iterate over the samples in that lane.
+        for i, sample in summary.iterrows():
+            if sample['Sample_Name'] == 'Undetermined':
+                continue
+            # You want to know if this sequence matches the *truth*, which is,
+            # unfortunately, named "Unknown barcode".
+            b2 = illumina.Barcode(sequence=sample['Index'])
+            rec = {
+                'Lane': sample['Lane'],
+                'Sample_Project': sample['Sample_Project'],
+                'Sample_Name': sample['Sample_Name'],
+                'Barcode': sample['Index'],
+                'i7': str(b2.i7),
+                'i5': str(b2.i5),
+                'Read_count': sample['# Reads']
+            }
+            # Then, iterate over the "unknown" barcodes, one at a time.
+            for j, unknown in unknown_barcodes_lane.iterrows():
+                # This is the *real* sequence. You want to check if there is a
+                # variation of the sample index that matches this one.
+                b1 = illumina.Barcode(i7=unknown['index'], i5=unknown['index2'])
+                matches = illumina.compare_barcodes(b1, b2)
+                for method, match in matches.items():
+                    if str(match) not in barcode_ids:
+                        barcode_ids[str(match)] = bi
+                        bi += 1
+                    tmp = {**rec}
+                    tmp['Reverse_complement'] = method
+                    tmp['Unknown_barcode'] = str(b1)
+                    tmp['Unknown_i7'] = str(b1.i7)
+                    tmp['Unknown_i5'] = str(b1.i5)
+                    tmp['Unknown_barcode_ID'] = barcode_ids[str(match)]
+                    tmp['Unknown_read_count'] = unknown['# Reads']
+                    tmp['Diff_count'] = unknown['# Reads'] - sample['# Reads']
+                    tmp['Log2_FoldDiff'] = np.log2(unknown['# Reads'] / max(sample['# Reads'], 1)).round(2)
+                    records.append(tmp)
+
+    records = sorted(records, key=lambda d: (d['Unknown_barcode_ID'], d['Lane']))
+
+    df = pd.DataFrame(records)
+
+    return df
+
 
 def cli(args):
 
@@ -389,3 +639,6 @@ def cli(args):
     elif args.sbatch:
         output_parent.mkdir(parents=True, exist_ok=True)
         slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
+
+
+# END
