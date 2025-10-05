@@ -1128,6 +1128,131 @@ class SampleSheetv2(BaseSampleSheet):
         return None
 
 
+# [TODO] Move to illumina/sample_sheet.py
+class Barcode:
+    _allowed_chars = set('actgn+')
+    def __init__(self, sequence=None, i7=None, i5=None, sep='-'):
+        self.sep = sep
+        if sequence and not i7 and not i5:
+            if '+' in sequence:
+                self.sep = '+'
+            try:
+                i7, i5 = sequence.split(self.sep)
+            except ValueError as e:
+                raise ValueError(f'Invalid sequence: {sequence}')
+        elif i7 and i5 and not sequence:
+            pass
+        else:
+            raise ValueError('You must provide "sequence OR ( i7 AND i5 )" ')
+        self.i7 = i7
+        self.i5 = i5
+        self._full = Seq(f'{i7}{self.sep}{i5}')
+
+    def __str__(self):
+        return f'{self.i7}{self.sep}{self.i5}'
+
+    def __repr__(self):
+        return f'Barcode({self.__str__()})'
+
+    @property
+    def i7(self):
+        '''
+        Index 1 (left-hand side)
+        '''
+        return self._i7
+
+    @i7.setter
+    def i7(self, value):
+        '''  
+        The Index 1 (i7) index adapter sequence.
+        https://support-docs.ilnplumina.com/SW/BCL_Convert/Content/SW/BCLConvert/SampleSheets_swBCL.htm
+        '''
+        if not set(str(value).casefold()) <= self._allowed_chars:
+            raise ValueError(f'Invalid sequence: {value}')
+        self._i7 = Seq(value)
+
+    @property
+    def i5(self):
+        '''
+        Index 2 (right-hand side)
+        '''
+        return self._i5
+
+    @i5.setter
+    def i5(self, value):
+        '''
+        The Index 2 (i5) Index adapter sequence.
+        https://support-docs.illumina.com/SW/BCL_Convert/Content/SW/BCLConvert/SampleSheets_swBCL.htm
+        '''
+        if not set(str(value).casefold()) <= self._allowed_chars:
+            raise ValueError(f'Invalid sequence: {value}')
+        self._i5 = Seq(value)
+
+
+    def rc1(self):
+        '''
+        Reverse complement method 1: i7 only.
+        '''
+        return Barcode(i7=self.i7.reverse_complement(), i5=self.i5)
+
+    def rc2(self):
+        '''
+        Reverse complement method 2: i5 only.
+        '''
+        return Barcode(i7=self.i7, i5=self.i5.reverse_complement())
+
+    def rc3(self):
+        '''
+        Reverse complement method 3: i7 and i5 independently ("both").
+        '''
+        return Barcode(i7=self.i7.reverse_complement(), i5=self.i5.reverse_complement())
+
+    def rc4(self):
+        '''
+        Reverse complement method 4: "full" sequence (disregard i7 and i5).
+        '''
+        return Barcode(self._full.reverse_complement())
+
+    def reverse_complement(self, method=1):
+        '''
+        There are 4 ways that you can reverse complement the barcode:
+        1. i7 only
+        2. i5 only
+        3. i7 and i5 independently ("both")
+        4. i7 and i5 together ("full", ie, treat it as 1 sequence)
+        '''
+        if method == 'i7' or method == 1:
+            return self.rc1()
+        if method == 'i5' or method == 2:
+            return self.rc2()
+        elif method == 'both' or method == 3:
+            return self.rc3()
+        elif method == 'full' or method == 4:
+            return self.rc4()
+        elif method.casefold() == 'none':
+            # Dummy. Just return the original sequence.
+            # Should this issue a warning?
+            return self
+        else:
+            raise ValueError(f'Invalid method: {method}')
+
+
+# [TODO] Move to illumina/helpers.py
+def compare_barcodes(b1, b2, verbose=False):
+    '''
+    Check if any reverse complemented form of "b2" matches "b1".
+    '''
+    matches = {}
+    for method in ['None', 'i7', 'i5', 'both', 'full']:
+        rc = b2.reverse_complement(method=method)
+        if str(b1) == str(rc):
+            if verbose:
+                print(f'Original : {b1} .. {b2}')
+                print(f'Match    : {b1} <- {rc}')
+            matches[method] = rc
+    return matches
+
+
 class IlluminaSequencingData(base.RawData):
     # getter and setter methods:
     # https://www.geeksforgeeks.org/getter-and-setter-in-python/
