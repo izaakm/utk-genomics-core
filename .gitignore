@@ -11,12 +11,12 @@
 __pycache__/
 tags
 
-/bin/
-/codebooks/
-/data/
-/logs/
-/notebooks/
-/tests/
+/bin
+/codebooks
+/data
+/logs
+/notebooks
+/tests
 
 # Distribution / packaging
 *.egg*
