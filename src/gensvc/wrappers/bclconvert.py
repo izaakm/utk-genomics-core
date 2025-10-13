@@ -523,6 +523,7 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
         'Lane': 'Lane on flow cell.',
         'Log2_FoldChange': 'log2(`Unknown count` / `PF Clusters`) [Denominator is set to 1 if `PF Clusters` is 0.]',
         'Reverse_complement': 'Method used to match the given barcode to the unknown barcode. One of: "i7", "i5", "both", "full".',
+        'SampleID': 'Name of sample.',
         'Sample_Name': 'Name of sample.',
         'Sample_Project': 'Name of project (same as `ProjectName` or `Sample_Project` column).',
         'Unknown_barcode': 'A barcode sequence not present in the sample sheet.',
@@ -546,20 +547,22 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
         unknown_barcodes_lane = top_unknown_barcodes.query(f'Lane=={lane}')
         # Next, iterate over the samples in that lane.
         for i, sample in summary.iterrows():
-            if sample['Sample_Name'] == 'Undetermined':
+            if sample['SampleID'] == 'Undetermined':
                 continue
             # You want to know if this sequence matches the *truth*, which is,
             # unfortunately, named "Unknown barcode".
             b2 = illumina.Barcode(sequence=sample['Index'])
             rec = {
                 'Lane': sample['Lane'],
-                'Sample_Project': sample['Sample_Project'],
-                'Sample_Name': sample['Sample_Name'],
+                'SampleID': sample['SampleID'],
                 'Barcode': sample['Index'],
                 'i7': str(b2.i7),
                 'i5': str(b2.i5),
                 'Read_count': sample['# Reads']
             }
+            if 'Sample_Project' in sample.index:
+                rec['Sample_Project'] = sample['Sample_Project']
+
             # Then, iterate over the "unknown" barcodes, one at a time.
             for j, unknown in unknown_barcodes_lane.iterrows():
                 # This is the *real* sequence. You want to check if there is a
