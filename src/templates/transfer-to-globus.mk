@@ -21,13 +21,13 @@ $(GLOBUS_DATA)/$(runid)/%: $(PROCESSED_DATA)/$(runid)/transfer/external/% | $(GL
 	@echo "External: $(*)"
 	cp -lr $(<) $(@D)/
 	echo "$(runid) - $(*)" >> $(@D)/COLLECTIONS
-	touch "$(*).GlobusTransferComplete"
+	touch "$(<D)/$(*).GlobusTransferComplete"
 
 $(GLOBUS_DATA)/$(runid)/%: $(PROCESSED_DATA)/$(runid)/transfer/unknown_project/% | $(GLOBUS_DATA)/$(runid) $(collections)
 	@echo "Unknown Project: $(*)"
 	cp -lr $(<) $(@D)/
 	echo "$(runid) - $(*)" >> $(@D)/COLLECTIONS
-	touch "$(*).GlobusTransferComplete"
+	touch "$(<D)/$(*).GlobusTransferComplete"
 
 $(collections):
 	@echo "<PI Last Name> UTK Illumina Data <YYYYMMDD> [(<Collaborator Last Name>)]" > $(@)
