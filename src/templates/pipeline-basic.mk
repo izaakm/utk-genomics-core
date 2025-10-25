@@ -18,6 +18,10 @@ SRUN := srun \
 
 ifdef SLURM_JOB_ID
 SRUN += --exclusive
+else
+SRUN += --job-name qc-$(notdir $(PWD)) \
+		--mail-user \
+		--mail-type=END,FAIL
 endif
 
 FASTQC := apptainer exec 'https://depot.galaxyproject.org/singularity/fastqc:0.12.1--hdfd78af_0' fastqc
