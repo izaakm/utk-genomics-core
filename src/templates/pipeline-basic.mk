@@ -11,11 +11,14 @@ SRUN := srun \
 		--account $(SLURM_ACCOUNT) \
 		--partition $(SLURM_PARTITION) \
 		--qos $(SLURM_QOS) \
-		--exclusive \
 		--ntasks 1 \
 		--cpus-per-task $(CPUS_PER_TASK) \
 		--export=ALL,LC_ALL=C \
 		--time 03:00:00
+
+ifdef SLURM_JOB_ID
+SRUN += --exclusive
+endif
 
 FASTQC := apptainer exec 'https://depot.galaxyproject.org/singularity/fastqc:0.12.1--hdfd78af_0' fastqc
 
@@ -32,4 +35,4 @@ checksums.sha256: $(FASTQ_FILES)
 fastqc: $(FASTQC_FILES)
 fastqc/%.html: fastq/%.fastq.gz
 	mkdir -p fastqc
-	$(SRUN) $(FASTQC) --threads $(CPUS_PER_TASK) -o fastqc $<
+	$(SRUN) $(FASTQC) --threads $(CPUS_PER_TASK) -o fastqc $(<)
