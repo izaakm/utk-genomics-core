@@ -640,6 +640,9 @@ def cli(args):
         output_parent.mkdir(parents=True, exist_ok=True)
         slurm.srun(bclconvert.cmd)
     elif args.sbatch:
+        # Submit a job with sbatch. simple_slurm will create the job file at
+        # `job_file` and the output file will be created in the current working
+        # directory in the same manner as submitting with sbatch CLI.
         output_parent.mkdir(parents=True, exist_ok=True)
         slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
 
