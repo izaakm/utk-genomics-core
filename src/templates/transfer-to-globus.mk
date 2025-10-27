@@ -16,6 +16,7 @@ GLOBUS_TRANSFER_COMPLETE := $(addsuffix .GlobusTransferComplete,$(wildcard */*))
 
 # .../UTK0192/data/globus/<RUNID>/<SAMPLE_PROJECT>
 GLOBUS_COLLECTION := $(addprefix $(GLOBUS_DATA)/$(RUNID)/,$(SAMPLE_PROJECT))
+.SECONDARY: $(GLOBUS_COLLECTION)
 
 # .../UTK0192/data/globus/<RUNID>/COLLECTIONS
 COLLECTION_INFO := $(GLOBUS_DATA)/$(RUNID)/COLLECTIONS
@@ -28,23 +29,35 @@ COLLECTION_INFO := $(GLOBUS_DATA)/$(RUNID)/COLLECTIONS
 # all: $(GLOBUS_COLLECTION)
 all: $(GLOBUS_TRANSFER_COMPLETE)
 
-$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/external/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
-	@echo "External: $(*)"
-	cp -lr $(<) $(@D)/
-	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
-	touch "$(<D)/$(*).GlobusTransferComplete"
+# ============================================================
+# External project directories: external/*
+# ============================================================
+external/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
+	touch "$(@)"
 
+$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/external/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+	@echo "Sample Project: $(*)"
+	cp -lr "external/$(*)" "$(@D)/"
+	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
+
+# ============================================================
+# Unknown Project directory: unknown_project/*
+# ============================================================
 unknown_project/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
-	touch $(@)
+	touch "$(@)"
 
 $(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
-	@echo "Unknown Project: $(*)"
-	cp -lr $(<) $(@D)/
-	echo "$(RUNID) - $(*)" >> $(@D)/COLLECTIONS
-	touch "$(<D)/$(*).GlobusTransferComplete"
+	@echo "Sample Project: $(*)"
+	cp -lr "unknown_project/$(*)" "$(@D)/"
+	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
 
+# ============================================================
 $(COLLECTION_INFO):
 	@echo "<PI Last Name> UTK Illumina Data <YYYYMMDD> [(<Collaborator Last Name>)]" > $(@)
 
-$(GLOBUS_DATA)/$(RUNID):
-	test -d $(GLOBUS_DATA) && mkdir -p $(@)
+$(GLOBUS_DATA)/$(RUNID): | $(GLOBUS_DATA)
+	mkdir -p "$(@)"
+
+# Dummy.
+$(GLOBUS_DATA):
+	test -d "$(GLOBUS_DATA)"
