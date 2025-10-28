@@ -1346,6 +1346,8 @@ class IlluminaSequencingData(base.RawData):
         #         print(f'[WARNING] Found {len(found_items)} possible sample sheets:', file=sys.stderr)
         #         for item in found_items:
         #             print(item, file=sys.stderr)
+        # ---
+        # [TODO] Find all sample sheets depending on instrument type.
         pass
 
     # def ls(self):
