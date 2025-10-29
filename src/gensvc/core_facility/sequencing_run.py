@@ -1,3 +1,14 @@
+'''
+The Illumina instruments from the Genomics Core Facility create data in the
+form of a sequencing run ("seqrun"). Each seqrun needs to go through a
+conversion step, and the outputs of the conversion are made available to the
+core facility's users via Globus.
+
+The `SequencingRun` class takes a "run ID" for a seqrun and has attributes and
+methods for accessing all of the data objects associated with that seqrun.
+'''
+
+
 from gensvc.data.base import Datadir
 from gensvc.data.illumina import IlluminaSequencingData, read_sample_sheet
 from gensvc.misc.config import config
