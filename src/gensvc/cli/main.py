@@ -153,6 +153,10 @@ def cli_list(args):
     return res
 
 
+def cli_list_run(args):
+    from gensvc.core_facility.sequencing_run import cli
+    return cli(args)
+
 
 def run_transfer(args):
     pass
@@ -179,6 +183,7 @@ def cli_setup_transfer_dirs(args):
 def cli_config(args):
     from gensvc.misc.config import cli
     return cli(args)
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -211,6 +216,21 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parse_config.set_defaults(func=cli_config)
+
+    parse_reports = subparsers.add_parser(
+        'list', 
+        aliases=['ls'],
+        help='List sequencing runs in the given director',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_reports.set_defaults(func=cli_list)
+
+    parse_list_run = subparsers.add_parser(
+        'list-run', 
+        help='List sequencing run by run ID in the given director',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_list_run.set_defaults(func=cli_list_run)
 
     # ============================================================
     # Config
@@ -326,14 +346,15 @@ def get_parser():
 
     # ============================================================
     # List sequencing runs.
+    # ------------------------------------------------------------
+    # The reports.cli_list fxn (the default for the parse_reports parser) is
+    # deprecated. Use sequencing_run.cli (parse_list_run) instead.
     # ============================================================
-    parse_reports = subparsers.add_parser(
-        'list', 
-        aliases=['ls'],
-        help='List sequencing runs in the given director',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    parse_list_run.add_argument(
+        'runid',
+        help='The run ID or path to sequencing run.'
     )
-    parse_reports.set_defaults(func=cli_list)
+
     parse_reports.add_argument(
         'pathlist',  
         default=[
