@@ -176,6 +176,10 @@ def cli_setup_transfer_dirs(args):
     return 0
 
 
+def cli_config(args):
+    from gensvc.misc.config import cli
+    return cli(args)
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -197,9 +201,26 @@ def get_parser():
     )
 
     # ============================================================
-    # Subparsers
+    # Initialize Subparsers
     # ============================================================
     subparsers = parser.add_subparsers(help='sub-command help')
+
+    parse_config = subparsers.add_parser(
+        'config',
+        help='View or set configuration settings.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_config.set_defaults(func=cli_config)
+
+    # ============================================================
+    # Config
+    # ============================================================
+    parse_config.add_argument(
+        '--list', '-l',
+        help='List current configuration settings.',
+        action='store_true',
+        default=False,
+    )
 
     # ============================================================
     # Set up a new sample sheet.
