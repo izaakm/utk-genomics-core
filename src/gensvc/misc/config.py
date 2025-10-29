@@ -124,3 +124,16 @@ config = Config()
 #             GENSVC_PROCDATA = None
 #         )
 #     return env
+
+def cli(args):
+    '''
+    Command line interface for configuration settings.
+    '''
+    if args.list:
+        print('Current configuration settings:')
+        for key in dir(config):
+            if not key.startswith('_'):
+                value = getattr(config, key)
+                print(f'{key}={value}')
+
+    return 0
