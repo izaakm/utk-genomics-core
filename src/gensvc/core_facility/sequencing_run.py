@@ -9,6 +9,9 @@ methods for accessing all of the data objects associated with that seqrun.
 '''
 
 
+import os
+
+
 from gensvc.data.base import Datadir
 from gensvc.data.illumina import IlluminaSequencingData, read_sample_sheet
 from gensvc.misc.config import config
@@ -100,6 +103,7 @@ class SequencingRun:
             run_id,
             path_to_rundir=None,
             path_to_procdir=None,
+            path_to_samplesheet=None,
             illumina_root=config.GENSVC_ILLUMINA_DIR,
             processed_root=config.GENSVC_PROCDATA,
         ):
@@ -117,7 +121,10 @@ class SequencingRun:
             path_to_procdir = processed_root / run_id
 
         self.run_id = run_id
-        self.rundir = IlluminaSequencingData(path_to_rundir)
+        self.rundir = IlluminaSequencingData(
+            path_to_rundir,
+            path_to_samplesheet=path_to_samplesheet
+        )
         self.procdir = ProcessedData(path_to_procdir)
         self.instrument_name = None  # NextSeq, NovaSeq, etc.
         self.instrument_id = None  # Instrument serial number or ID.
@@ -146,3 +153,34 @@ class SequencingRun:
         latest_sheet = max(sheets, key=lambda p: p.stat().st_mtime)
         return latest_sheet
 
+
+def cli(args):
+    if os.path.isdir(args.runid):
+        runid = os.path.basename(args.runid)
+        seqrun = SequencingRun(
+            runid,
+            path_to_rundir=args.runid
+        )
+    else:
+        seqrun = SequencingRun(args.runid)
+
+    # print('Run Directory:', seqrun.rundir.path)
+    print('Run Directory:')
+    print(f'  {seqrun.rundir.path}')
+    # print('Processed Directory :', seqrun.procdir.path)
+    print('Processed Directory:')
+    print(f'  {seqrun.procdir.samplesheet}')
+    print(f'  {seqrun.procdir.BCLConvert}')
+    print(f'  {seqrun.procdir.transfer}')
+
+    path_to_samplesheet = seqrun.get_latest_samplesheet()
+    # print('Sample Sheet (latest):', path_to_samplesheet)
+    print('Sample Sheet (latest):')
+    print(f'  {path_to_samplesheet}')
+
+    samplesheet = read_sample_sheet(path_to_samplesheet)
+    # print(samplesheet.Header)
+    print('Header:')
+    print(*[f'  {line}' for line in samplesheet.Header.to_csv().strip().splitlines()[1:]], sep='\n')
+    print('Projects:')
+    print(*[f'  {line}' for line in samplesheet.projects], sep='\n')
