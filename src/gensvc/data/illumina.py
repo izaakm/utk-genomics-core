@@ -35,6 +35,7 @@ from scipy.spatial import distance
 from Bio.Seq import Seq
 
 
+# [TODO] Move this to config.
 _instrument_id ={
     'FS10003266': 'iSeq',
     'M04398': 'MiSeq',
@@ -1336,7 +1337,7 @@ class IlluminaSequencingData(base.RawData):
     def projects(self):
         return self.samplesheet.projects
 
-    def find_samplesheet(self):
+    def find_samplesheets(self):
         # found_items = ss.find_samplesheet(self.rundir)
         # if len(found_items) == 0:
         #     raise ValueError(f'No sample sheet found: {self.path}')
@@ -1348,7 +1349,14 @@ class IlluminaSequencingData(base.RawData):
         #             print(item, file=sys.stderr)
         # ---
         # [TODO] Find all sample sheets depending on instrument type.
-        pass
+        if self.instrument.casefold() == 'novaseq':
+            return [self.rundir / 'SampleSheet.csv']
+        elif self.instrument.casefold() == 'nextseq':
+            sheets = [self.rundir / 'SampleSheet.csv']
+            sheets.extend(list(self.rundir.glob('Analysis/*/Data/SampleSheet.csv')))
+            return sheets
+        else:
+            raise ValueError(f'Instrument type not recognized: {self.instrument}')
 
     # def ls(self):
     #     for path in sorted(self.path.iterdir()):
