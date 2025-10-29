@@ -28,6 +28,9 @@ class RawData(Datadir):
 
 
 class ProcessedData(Datadir):
+    '''
+    DEPRECATED.
+    '''
     def __init__(self, path, **kwargs):
         super().__init__(path, **kwargs)
 
