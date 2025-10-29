@@ -140,9 +140,13 @@ def parse_dict_section(lines, name=None, cls=None):
         cls = DictSection
     data = {}
     for line in lines:
-        if not line:
+        if not line.strip():
             continue
-        key, val, *_ = line.split(',')
+        key, val = line.split(',', maxsplit=1)
+        key = key.strip()
+        val = val.strip().strip(' ,')
+        if not key and not val:
+            continue
         data[key] = val
     return cls(data, name=name)
 
