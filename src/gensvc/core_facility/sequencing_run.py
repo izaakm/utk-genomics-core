@@ -10,7 +10,7 @@ methods for accessing all of the data objects associated with that seqrun.
 
 
 import os
-
+import warnings
 
 from gensvc.data.base import Datadir
 from gensvc.data.illumina import IlluminaSequencingData, read_sample_sheet
@@ -107,7 +107,9 @@ class SequencingRun:
             illumina_root=config.GENSVC_ILLUMINA_DIR,
             processed_root=config.GENSVC_PROCDATA,
         ):
-        if path_to_rundir is None:
+        if path_to_rundir:
+            pass
+        elif illumina_root:
             found = list(illumina_root.glob(f'*Runs/{run_id}'))
             if len(found) == 0:
                 # Print warning.
@@ -116,9 +118,15 @@ class SequencingRun:
                 path_to_rundir = found[0]
             else:
                 raise ValueError(f'Multiple run directories found for {run_id}: {found}')
+        else:
+            warnings.warn('No illumina_root specified; cannot locate run directory.')
 
-        if path_to_procdir is None:
+        if path_to_procdir:
+            pass
+        elif processed_root:
             path_to_procdir = processed_root / run_id
+        else:
+            warnings.warn('No processed_root specified; cannot locate processed data directory.')
 
         self.run_id = run_id
         self.rundir = IlluminaSequencingData(
