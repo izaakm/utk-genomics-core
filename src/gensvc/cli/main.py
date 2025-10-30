@@ -18,7 +18,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def cli_sample_sheet(args):
+def cli_create_samplesheet(args):
     '''
     Generate a sample sheet for BCL-Convert.
     '''
@@ -232,6 +232,13 @@ def get_parser():
     )
     parse_list_run.set_defaults(func=cli_list_run)
 
+    parse_create_samplesheet = subparsers.add_parser(
+        'create-samplesheet',
+        help='Create a sample sheet for BCL Convert.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parse_create_samplesheet.set_defaults(func=cli_create_samplesheet)
+
     # ============================================================
     # Config
     # ============================================================
@@ -245,65 +252,58 @@ def get_parser():
     # ============================================================
     # Set up a new sample sheet.
     # ============================================================
-    parse_sample_sheet = subparsers.add_parser(
-        'create-samplesheet',
-        help='Create a sample sheet for BCL Convert.',
-        aliases=['samplesheet'],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parse_sample_sheet.set_defaults(func=cli_sample_sheet)
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--format', '-F',
         choices=['v1', 'v2'],
         default='v2',
         help='Sample sheet format.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--from', '-f',
         dest='src_sample_sheet',  # `from` is a reserved word.
         action='store',
         type=Path,
         help='Initialize new sample sheet from the given sample sheet.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--projectname-to-sampleproject', '-p',
         dest='projectname_to_sampleproject',
         action='store_true',
         default=False,
         help='Map the "ProjectName" from "Cloud_Data" to "Sample_Project" in "BCLConvert_Data".'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--project-suffix', '-s',
         action='store',
         type=str,
         help=''
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--check-duplicate-indexes', '-i',
         action='store_true',
         default=False,
         help='Check for duplicate indexes in the sample sheet.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--merge-duplicate-indexes', '-m',
         action='store_true',
         default=False,
         help='Merge samples with duplicate indexes into a single dummy sample.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--check-hamming-distances',
         action='store_true',
         default=False,
         help='Check pairwise Hamming distances between sample indexes. Requires either --barcode-mismatches or --min-hamming-distance to be set.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--barcode-mismatches',
         action='store',
         type=int,
         default=None,
         help='Number of allowed barcode (index) mismatches.'
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--min-hamming-distance',
         action='store',
         type=int,
@@ -314,7 +314,7 @@ def get_parser():
             'If provided, --barcode-mismatches will be ignored.'
         )
     )
-    parse_sample_sheet.add_argument(
+    parse_create_samplesheet.add_argument(
         '--create-fastq-for-index-reads',
         action='store_true',
         default=False,
