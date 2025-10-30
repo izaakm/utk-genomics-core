@@ -13,7 +13,7 @@ class Config:
     GENSVC_PROCDATA=/Users/jmill165/data/mirrors/gensvc/processed
     '''
     _DEBUG = False
-    _GENSVC_DATADIR = os.getenv('GENSVC_DATADIR')
+    _GENSVC_DATADIR = os.getenv('GENSVC_DATADIR', 'data')
     _GENSVC_ILLUMINA_DIR = os.getenv('GENSVC_ILLUMINA_DIR')
     _GENSVC_ISEQ_DATADIR = os.getenv('GENSVC_ISEQ_DATADIR')
     _GENSVC_NEXTSEQ_DATADIR = os.getenv('GENSVC_NEXTSEQ_DATADIR')
