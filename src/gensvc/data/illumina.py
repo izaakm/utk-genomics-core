@@ -81,6 +81,12 @@ def parse_sample_sheet(path):
     -------
     dict
         A dictionary of sections, where each section is a list of lines.
+
+        {
+            'sections': [<section names>],
+            '<section name>': [<lines>],
+            ...
+        }
     '''
     # header = re.compile(r'^\[\s*Header\s*]')
     content = {
