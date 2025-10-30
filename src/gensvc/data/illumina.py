@@ -115,8 +115,14 @@ def parse_sample_sheet(path):
     return content
 
 
-def read_sample_sheet(path, version='infer'):
+def read_sample_sheet(path, version='infer', required_sections=['Header', 'Reads']):
     content = parse_sample_sheet(path)
+    for sec in required_sections:
+        if sec not in content:
+            warnings.warn(
+                f'Sample sheet is missing required section: [{sec}]',
+                UserWarning
+            )
 
     if version == 'infer':
         if 'BCLConvert_Settings' in content:
@@ -142,6 +148,13 @@ def parse_list_section(lines, name=None):
 
 
 def parse_dict_section(lines, name=None, cls=None):
+    '''
+    Parameters
+    ----------
+    lines : list of str
+    name : str, optional
+    cls : class, optional
+    '''
     if cls is None:
         cls = DictSection
     data = {}
@@ -693,7 +706,7 @@ class TableSection:
 class BaseSampleSheet:
     def __init__(self, path=None, content=None):
         self.path = path      # Use setter.
-        self._content = content
+        self._content = content or {}
         # Sections
         self._header = None   # Standard for all subclasses.
         self._reads = None    # Standard for all subclasses.
@@ -765,7 +778,11 @@ class BaseSampleSheet:
         '''
         if not self._header:
             name = 'Header'
-            self._header = parse_dict_section(self.content[name], name=name)
+            # self._header = parse_dict_section(self.content[name], name=name)
+            self._header = parse_dict_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._header
 
     @property
@@ -977,7 +994,11 @@ class SampleSheetv1(BaseSampleSheet):
         '''
         if not self._reads:
             name = 'Reads'
-            self._reads = parse_list_section(self.content[name], name=name)
+            # self._reads = parse_list_section(self.content[name], name=name)
+            self._reads = parse_list_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._reads
 
     @property
@@ -988,7 +1009,7 @@ class SampleSheetv1(BaseSampleSheet):
         if not self._settings:
             name = 'Settings'
             self._settings = parse_dict_section(
-                self.content[name],
+                self.content.get(name, []),
                 name=name,
                 cls=SettingsSection
             )
@@ -1001,7 +1022,11 @@ class SampleSheetv1(BaseSampleSheet):
         '''
         if not self._data:
             name = 'Data'
-            self._data = parse_table_section(self.content[name], name=name)
+            # self._data = parse_table_section(self.content[name], name=name)
+            self._data = parse_table_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._data
     
     @property
@@ -1048,7 +1073,11 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         if not self._reads:
             name = 'Reads'
-            self._reads = parse_dict_section(self.content[name], name=name)
+            # self._reads = parse_dict_section(self.content[name], name=name)
+            self._reads = parse_dict_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._reads
 
     @property
@@ -1059,7 +1088,7 @@ class SampleSheetv2(BaseSampleSheet):
         if not self._bclconvert_settings:
             name = 'BCLConvert_Settings'
             self._bclconvert_settings = parse_dict_section(
-                self.content[name],
+                self.content.get(name, []),
                 name=name,
                 cls=BCLConvertSettingsSection
             )
@@ -1074,7 +1103,11 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         if not self._cloud_settings:
             name = 'Cloud_Settings'
-            self._cloud_settings = parse_dict_section(self.content[name], name=name)
+            # self._cloud_settings = parse_dict_section(self.content[name], name=name)
+            self._cloud_settings = parse_dict_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._cloud_settings
 
     @property
@@ -1084,7 +1117,11 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         if not self._bclconvert_data:
             name = 'BCLConvert_Data'
-            self._bclconvert_data = parse_table_section(self.content[name], name=name)
+            # self._bclconvert_data = parse_table_section(self.content[name], name=name)
+            self._bclconvert_data = parse_table_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._bclconvert_data
 
     Data = BCLConvert_Data
@@ -1096,7 +1133,11 @@ class SampleSheetv2(BaseSampleSheet):
         '''
         if not self._cloud_data:
             name = 'Cloud_Data'
-            self._cloud_data = parse_table_section(self.content[name], name=name)
+            # self._cloud_data = parse_table_section(self.content[name], name=name)
+            self._cloud_data = parse_table_section(
+                self.content.get(name, []),
+                name=name
+            )
         return self._cloud_data
     
     @property
