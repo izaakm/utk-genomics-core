@@ -158,7 +158,10 @@ class SequencingRun:
         sheets = self.list_samplesheets()
         if len(sheets) == 0:
             return None
-        latest_sheet = max(sheets, key=lambda p: p.stat().st_mtime)
+        latest_sheet = max(
+            [s for s in sheets if os.path.isfile(s)],
+            key=lambda p: p.stat().st_mtime
+        )
         return latest_sheet
 
 
