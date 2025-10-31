@@ -163,9 +163,8 @@ def run_transfer(args):
 
 
 def cli_bclconvert(args):
-    from gensvc.wrappers import bclconvert
-    _ = bclconvert.cli(args)
-    return 0
+    from gensvc.wrappers.bclconvert import cli
+    return cli(args)
 
 
 def cli_extract_bclconvert_stats(args):
@@ -271,6 +270,14 @@ def get_parser():
         func=cli_samplesheet,
         subcommand='create'
     )
+
+    # gensvc bclconvert <runid_or_rundir>
+    parser_bclconvert = subparsers.add_parser(
+        'bclconvert', 
+        help='Convert BCL files to FASTQ using Illumina\'s BCLConvert.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser_bclconvert.set_defaults(func=cli_bclconvert)
 
     # ============================================================
     # Config
@@ -510,68 +517,79 @@ def get_parser():
     # ============================================================
     # Convert BCL files to FASTQ.
     # ============================================================
-    parser_bclconvert = subparsers.add_parser(
-        'bclconvert', 
-        help='Convert BCL files to FASTQ using Illumina\'s BCLConvert.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser_bclconvert.set_defaults(func=cli_bclconvert)
     parser_bclconvert.add_argument(
-        '--path-to-bclconvert-exe',
+        'runid_or_rundir',
+        help='The run ID or path to sequencing run directory.',
         action='store',
-        type=Path,
         default=None
     )
     parser_bclconvert.add_argument(
+        '--path-to-bclconvert-exe',
+        help='The path to the BCLConvert executable.',
+        action='store',
+        type=Path,
+        default=config.PATH_TO_BCLCONVERT_EXE
+    )
+    parser_bclconvert.add_argument(
         '--bcl-input-directory',
+        help='The path to the sequencing run directory.',
         action='store',
         type=Path,
         default=None
     )
     parser_bclconvert.add_argument(
         '--output-directory',
+        help='The path to the BCLConvert output directory.',
         action='store',
         type=Path,
         default=None
     )
     parser_bclconvert.add_argument(
         '--sample-sheet',
+        help='The path to the SampleSheet.csv file to use.',
         action='store',
         type=Path,
-        default='SampleSheet.csv'
+        default=None
     )
     parser_bclconvert.add_argument(
-        '--bcl-sampleproject-subdirectories',
+        '--sample-name-column-enabled',
+        help='Use the Sample_Name column when generating FASTQ file names.',
         action='store_true',
         default=True
     )
     parser_bclconvert.add_argument(
-        '--sample-name-column-enabled',
+        '--bcl-sampleproject-subdirectories',
+        help='Group output FASTQ files into subdirectories for each Sample_Project under the output directory.',
         action='store_true',
         default=True
     )
     parser_bclconvert.add_argument(
         '--output-legacy-stats',
+        help='Also generate legacy stats files (similar to bcl2fastq output).',
         action='store_true',
         default=True
     )
     parser_bclconvert.add_argument(
         '--dump',
+        help='Print the batch script to stdout.',
         action='store_true',
         default=False
     )
     parser_bclconvert.add_argument(
         '--run',
+        help='Run the BCLConvert conversion immediately in the current compute environment.',
         action='store_true',
         default=False
     )
     parser_bclconvert.add_argument(
         '--sbatch',
+        help='Use sbatch to submit the BCLConvert conversion as a Slurm job.',
         action='store_true',
         default=False
     )
     parser_bclconvert.add_argument(
         '--srun',
+        help='Use srun to run BCLConvert in a Slurm job step (or request a new job).',
         action='store_true',
         default=False
     )
