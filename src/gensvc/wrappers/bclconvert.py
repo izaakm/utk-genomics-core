@@ -9,6 +9,7 @@ from simple_slurm import Slurm
 
 from gensvc.misc.config import config
 from gensvc.data import illumina
+from gensvc.core_facility.sequencing_run import SequencingRun
 
 # Example sbatch directives:
 # #SBATCH --job-name=bcl-convert-$(basename $bcl_input_directory)
@@ -56,7 +57,8 @@ class BCLConvert:
     ...
     executable_filepath_ : str or pathlib.Path, optional
     parent_directory_ : str or pathlib.Path, optional
-    ...
+    sample_sheet:
+        Default input folder
 
     Comments
     --------
@@ -78,24 +80,27 @@ class BCLConvert:
             sample_name_column_enabled=True,
             output_legacy_stats=True
         ):
-        self._executable_filepath = executable_filepath
-        self._bcl_input_directory = bcl_input_directory
-        self._output_directory = output_directory
-        self._sample_sheet = sample_sheet
-        self._bcl_sampleproject_subdirectories = bcl_sampleproject_subdirectories
-        self._sample_name_column_enabled = sample_name_column_enabled
-        self._output_legacy_stat = output_legacy_stats
+        self.executable_filepath = executable_filepath
+        self.bcl_input_directory = bcl_input_directory
+        self.output_directory = output_directory
+        self.sample_sheet = sample_sheet
+        self.bcl_sampleproject_subdirectories = bcl_sampleproject_subdirectories
+        self.sample_name_column_enabled = sample_name_column_enabled
+        self.output_legacy_stats = output_legacy_stats
 
     def __repr__(self):
         return self.cmd
 
     @property
-    def executable_filepath_(self):
+    def executable_filepath(self):
         return self._executable_filepath
 
-    @executable_filepath_.setter
-    def executable_filepath_(self, value):
-        self._executable_filepath = value
+    @executable_filepath.setter
+    def executable_filepath(self, value):
+        if value is None:
+            self._executable_filepath = pathlib.Path('bcl-convert')
+        else:
+            self._executable_filepath = pathlib.Path(value)
 
     @property
     def bcl_input_directory(self):
@@ -143,17 +148,17 @@ class BCLConvert:
 
     @property
     def output_legacy_stats(self):
-        return self._output_legacy_stat
+        return self._output_legacy_stats
 
     @output_legacy_stats.setter
     def output_legacy_stats(self, value):
         if not isinstance(value, bool):
             raise ValueError("output_legacy_stats must be a boolean value")
-        self._output_legacy_stat = value
+        self._output_legacy_stats = value
 
     @property
     def cmdlist(self):
-        cmd = [str(self._executable_filepath)]
+        cmd = [str(self.executable_filepath)]
 
         if self.bcl_input_directory:
             cmd += ['--bcl-input-directory', str(self.bcl_input_directory)]
@@ -593,30 +598,40 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
 
 def cli(args):
 
+    if os.path.isdir(args.runid_or_rundir):
+        runid = os.path.basename(args.runid_or_rundir)
+        seqrun = SequencingRun(runid, path_to_rundir=args.runid_or_rundir)
+    else:
+        runid = args.runid_or_rundir
+        seqrun = SequencingRun(runid)
+
     if args.bcl_input_directory is None:
-        raise ValueError("bcl_input_directory is required")
-    run_id = args.bcl_input_directory.name
+        bcl_input_directory = seqrun.rundir.path
+    else:
+        bcl_input_directory = args.bcl_input_directory
 
     if args.output_directory is None:
-        # Use defaults.
-        if not config.GENSVC_PROCDATA.exists():
-            raise ValueError(f"GENSVC_PROCDATA directory does not exist: {config.GENSVC_PROCDATA}")
-        output_parent = config.GENSVC_PROCDATA / run_id
-        output_directory =  output_parent / 'BCLConvert'
-        job_file = output_parent / 'bclconvert.sh'
+        # # Use defaults.
+        # if not config.GENSVC_PROCDATA.exists():
+        #     raise ValueError(f"GENSVC_PROCDATA directory does not exist: {config.GENSVC_PROCDATA}")
+        # output_parent = config.GENSVC_PROCDATA / runid
+        output_directory = seqrun.procdir.path / 'BCLConvert'
+        job_file = seqrun.procdir.path / 'bclconvert.sh'
     else:
         output_directory = args.output_directory
-        output_parent = output_directory.parent
         job_file = None
 
-    args.output_directory = output_directory
-    # print(args)
-    
+    if args.sample_sheet is None:
+        sample_sheet = seqrun.rundir.path_to_samplesheet
+    else:
+        sample_sheet = args.sample_sheet
+
+    # args.output_directory = output_directory
     bclconvert = BCLConvert(
         executable_filepath=args.path_to_bclconvert_exe,
-        bcl_input_directory=args.bcl_input_directory,
-        output_directory=args.output_directory,
-        sample_sheet=args.sample_sheet,
+        bcl_input_directory=bcl_input_directory,
+        output_directory=output_directory,
+        sample_sheet=sample_sheet,
         bcl_sampleproject_subdirectories=args.bcl_sampleproject_subdirectories,
         sample_name_column_enabled=args.sample_name_column_enabled,
         output_legacy_stats=args.output_legacy_stats
@@ -634,17 +649,18 @@ def cli(args):
         print(bclconvert)
 
     if args.run:
-        output_parent.mkdir(parents=True, exist_ok=True)
+        output_directory.parent.mkdir(parents=False, exist_ok=True)
         bclconvert.run()
     elif args.srun:
-        output_parent.mkdir(parents=True, exist_ok=True)
+        output_directory.parent.mkdir(parents=False, exist_ok=True)
         slurm.srun(bclconvert.cmd)
     elif args.sbatch:
         # Submit a job with sbatch. simple_slurm will create the job file at
         # `job_file` and the output file will be created in the current working
         # directory in the same manner as submitting with sbatch CLI.
-        output_parent.mkdir(parents=True, exist_ok=True)
+        output_directory.parent.mkdir(parents=False, exist_ok=True)
         slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
 
+    return 0
 
 # END
