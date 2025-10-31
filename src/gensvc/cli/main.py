@@ -185,6 +185,11 @@ def cli_config(args):
     return cli(args)
 
 
+def cli_samplesheet(args):
+    from gensvc.cli.samplesheet import cli
+    return cli(args)
+
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -239,6 +244,34 @@ def get_parser():
     )
     parse_create_samplesheet.set_defaults(func=cli_create_samplesheet)
 
+    # gensvc samplesheet [create|update]
+    parse_samplesheet = subparsers.add_parser(
+        'samplesheet',
+        help='Create a sample sheet for BCL Convert.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    subparse_samplesheet = parse_samplesheet.add_subparsers(help='samplesheet sub-command help')
+
+    # gensvc samplesheet update
+    parse_samplesheet_update = subparse_samplesheet.add_parser(
+        'update',
+        help='Update an existing sample sheet.'
+    )
+    parse_samplesheet_update.set_defaults(
+        func=cli_samplesheet,
+        subcommand='update'
+    )
+
+    # gensvc samplesheet create
+    parse_samplesheet_create = subparse_samplesheet.add_parser(
+        'create',
+        help='Create an new sample sheet.'
+    )
+    parse_samplesheet_create.set_defaults(
+        func=cli_samplesheet,
+        subcommand='create'
+    )
+
     # ============================================================
     # Config
     # ============================================================
@@ -250,7 +283,98 @@ def get_parser():
     )
 
     # ============================================================
-    # Set up a new sample sheet.
+    # Sample Sheets
+    # ============================================================
+    parse_samplesheet_update.add_argument(
+        'path_or_runid',
+        help='Can be a path to a sample sheet (file), path to a sequencing run (directory), or run ID.',
+        action='store',
+    )
+    for p in [parse_samplesheet_create, parse_samplesheet_update]:
+        p.add_argument(
+            '--output', '-o',
+            help='Path to output sample sheet file. If "-", print to stdout.',
+            action='store',
+            default=None
+        )
+        p.add_argument(
+            '--force',
+            help='Overwrite existing sample sheet file.',
+            action='store_true',
+            default=False,
+        )
+        p.add_argument(
+            '--from', '-f',
+            help='Initialize sample sheet from the given sample sheet.',
+            dest='src_sample_sheet',  # `from` is a reserved word.
+            action='store',
+            type=Path,
+        )
+        p.add_argument(
+            '--format', '-F',
+            choices=['v1', 'v2'],
+            default='v2',
+            help='Sample sheet format.'
+        )
+        p.add_argument(
+            '--projectname-to-sampleproject', '-p',
+            dest='projectname_to_sampleproject',
+            action='store_true',
+            default=False,
+            help='Map the "ProjectName" from "Cloud_Data" to "Sample_Project" in "BCLConvert_Data".'
+        )
+        p.add_argument(
+            '--project-suffix', '-s',
+            action='store',
+            type=str,
+            help=''
+        )
+        p.add_argument(
+            '--check-duplicate-indexes', '-i',
+            action='store_true',
+            default=False,
+            help='Check for duplicate indexes in the sample sheet.'
+        )
+        p.add_argument(
+            '--merge-duplicate-indexes', '-m',
+            action='store_true',
+            default=False,
+            help='Merge samples with duplicate indexes into a single dummy sample.'
+        )
+        p.add_argument(
+            '--check-hamming-distances',
+            action='store_true',
+            default=False,
+            help='Check pairwise Hamming distances between sample indexes. Requires either --barcode-mismatches or --min-hamming-distance to be set.'
+        )
+        p.add_argument(
+            '--barcode-mismatches',
+            action='store',
+            type=int,
+            default=None,
+            help='Number of allowed barcode (index) mismatches.'
+        )
+        p.add_argument(
+            '--min-hamming-distance',
+            action='store',
+            type=int,
+            default=None,
+            help=(
+                'Minimum Hamming distance between sample barcodes (indexes). '
+                'If not provided, is set to --barcode-mismatches+1. '
+                'If provided, --barcode-mismatches will be ignored.'
+            )
+        )
+        p.add_argument(
+            '--create-fastq-for-index-reads',
+            action='store_true',
+            default=False,
+            help='Create FASTQ files for index reads.'
+        )
+
+    # ============================================================
+    # DEPRECATED - Set up a new sample sheet.
+    # Use `gensvc samplesheet create` instead.
     # ============================================================
     parse_create_samplesheet.add_argument(
         '--format', '-F',
@@ -529,6 +653,9 @@ def main():
     # logger.warning('*** Logger WARNING is working ***')
     # logger.info('*** Logger INFO is working ***')
     # logger.debug('*** Logger DEBUG is working ***')
+
+    if args.verbose >= 2:
+        logger.debug(f'Arguments: {args}')
 
     res = args.func(args)
 
