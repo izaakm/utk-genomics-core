@@ -1400,14 +1400,10 @@ class IlluminaSequencingData(base.RawData):
         #             print(item, file=sys.stderr)
         # ---
         # [TODO] Find all sample sheets depending on instrument type.
-        if self.instrument.casefold() == 'novaseq':
-            return [self.rundir / 'SampleSheet.csv']
-        elif self.instrument.casefold() == 'nextseq':
-            sheets = [self.rundir / 'SampleSheet.csv']
+        sheets = [self.path_to_samplesheet]
+        if self.instrument.casefold() == 'nextseq':
             sheets.extend(list(self.rundir.glob('Analysis/*/Data/SampleSheet.csv')))
-            return sheets
-        else:
-            raise ValueError(f'Instrument type not recognized: {self.instrument}')
+        return sheets
 
     # def ls(self):
     #     for path in sorted(self.path.iterdir()):
