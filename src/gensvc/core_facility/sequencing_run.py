@@ -147,6 +147,7 @@ class SequencingRun:
         [...]
         '''
         sheets = self.rundir.find_samplesheets() + self.procdir.find_samplesheets()
+        sheets = [s for s in sheets if os.path.isfile(s)]
         return sheets
 
     def get_latest_samplesheet(self):
@@ -158,10 +159,7 @@ class SequencingRun:
         sheets = self.list_samplesheets()
         if len(sheets) == 0:
             return None
-        latest_sheet = max(
-            [s for s in sheets if os.path.isfile(s)],
-            key=lambda p: p.stat().st_mtime
-        )
+        latest_sheet = max(sheets, key=lambda p: p.stat().st_mtime)
         return latest_sheet
 
 
@@ -180,13 +178,21 @@ def cli(args):
     print(f'  {seqrun.rundir.path}')
     # print('Processed Directory :', seqrun.procdir.path)
     print('Processed Directory:')
-    print(f'  {seqrun.procdir.samplesheet}')
-    print(f'  {seqrun.procdir.BCLConvert}')
-    print(f'  {seqrun.procdir.transfer}')
+    print(f'  {seqrun.procdir.path}')
+
+    print('BCL Convert Directory:')
+    if seqrun.procdir.BCLConvert.exists():
+        print(f'  {seqrun.procdir.BCLConvert}')
+    else:
+        print('  (not found)')
+    
+    print('Found Sample Sheets:')
+    for sheet in seqrun.list_samplesheets():
+        print(f'  {sheet}')
 
     path_to_samplesheet = seqrun.get_latest_samplesheet()
     # print('Sample Sheet (latest):', path_to_samplesheet)
-    print('Sample Sheet (latest):')
+    print('Latest Sample Sheet:')
     print(f'  {path_to_samplesheet}')
 
     samplesheet = read_sample_sheet(path_to_samplesheet)
