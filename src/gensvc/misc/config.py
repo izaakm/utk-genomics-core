@@ -13,6 +13,7 @@ class Config:
     GENSVC_PROCDATA=/Users/jmill165/data/mirrors/gensvc/processed
     '''
     _DEBUG = False
+    _GENSVC_ROOT = os.getenv('GENSVC')
     _GENSVC_DATADIR = os.getenv('GENSVC_DATADIR', 'data')
     _GENSVC_ILLUMINA_DIR = os.getenv('GENSVC_ILLUMINA_DIR')
     _GENSVC_ISEQ_DATADIR = os.getenv('GENSVC_ISEQ_DATADIR')
@@ -21,6 +22,7 @@ class Config:
     _GENSVC_PROCDATA = os.getenv('GENSVC_PROCDATA')
     _GENSVC_TRASH_DIR = os.getenv('GENSVC_TRASH_DIR')
     _GENSVC_UTSTOR_DIR = os.getenv('GENSVC_UTSTOR_DIR')
+    _PATH_TO_BCLCONVERT_EXE = os.getenv('PATH_TO_BCLCONVERT_EXE')
     _SLURM_SUBMIT = False
     _templates = __package_root__.parent / 'templates'
 
@@ -94,6 +96,16 @@ class Config:
             return self.GENSVC_DATADIR / 'utstor'
         else:
             return None
+
+    @property
+    def PATH_TO_BCLCONVERT_EXE(self):
+        if self._PATH_TO_BCLCONVERT_EXE:
+            return pathlib.Path(self._PATH_TO_BCLCONVERT_EXE)
+        elif self._GENSVC_ROOT:
+            p = pathlib.Path(self._GENSVC_ROOT) / 'bin' / 'bcl-convert'
+            if p.exists():
+                return p
+        return None
 
     @property
     def SLURM_SUBMIT(self):
