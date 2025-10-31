@@ -36,6 +36,10 @@ def cli(args):
     elif args.subcommand == "validate":
         raise NotImplementedError('SampleSheet validation not yet implemented.')
 
+    if not os.path.isfile(path_to_samplesheet):
+        sys.tracebacklimit = 0
+        raise FileNotFoundError(f'SampleSheet file not found: {path_to_samplesheet}')
+
     print(f'Path to SampleSheet: {path_to_samplesheet}')
 
     if args.src_sample_sheet:
