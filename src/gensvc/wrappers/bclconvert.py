@@ -659,7 +659,11 @@ def cli(args):
         # `job_file` and the output file will be created in the current working
         # directory in the same manner as submitting with sbatch CLI.
         output_directory.parent.mkdir(parents=False, exist_ok=True)
-        slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
+        if job_file is not None:
+            # Coerce Path obj to string.
+            slurm.sbatch(bclconvert.cmd, job_file=str(job_file))
+        else:
+            slurm.sbatch(bclconvert.cmd)
 
     return 0
 
