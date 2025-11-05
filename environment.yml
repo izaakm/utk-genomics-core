@@ -16,7 +16,7 @@ dependencies:
   - openpyxl
   - openssl
   - pandas
-  - python
+  - python=3.13
   - sample-sheet
   - scikit-learn
   - scipy
