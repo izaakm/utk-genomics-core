@@ -7,16 +7,14 @@ LOCAL_BIN = $(shell pwd -P)/bin
 SRC_SCRIPTS := $(shell find $(LOCAL_SRC) -maxdepth 1 -type f -name '*.sh' -perm -a=x -print)
 BIN_SCRIPTS := $(patsubst $(LOCAL_SRC)/%,$(LOCAL_BIN)/%,$(SRC_SCRIPTS))
 
-CODEBOOKS_HOME ?= $(HOME)/codebooks
-CODEBOOKS_SRC := $(shell find $(CODEBOOKS_HOME) -maxdepth 1 -type d -name '*gensvc*' -or -name '*genomics-core*')
-CODEBOOKS_DST := $(subst $(CODEBOOKS_HOME),codebooks,$(CODEBOOKS_SRC))
+# CODEBOOKS_HOME ?= $(HOME)/codebooks
+# CODEBOOKS_SRC := $(shell find $(CODEBOOKS_HOME) -maxdepth 1 -type d -name '*gensvc*' -or -name '*genomics-core*')
+# CODEBOOKS_DST := $(subst $(CODEBOOKS_HOME),codebooks,$(CODEBOOKS_SRC))
 
 CONDA_ENV_NAME := $(shell grep '^\s*name:' environment.yml | awk '{print $$2}')
 
-# $(info CODEBOOKS_SRC: $(CODEBOOKS_SRC))
-# $(info CODEBOOKS_DST: $(CODEBOOKS_DST))
 
-.PHONY: all tags init install uninstall j codebooks testdata clean
+.PHONY: all tags init install uninstall j testdata clean
 
 usage:
 	@echo "Usage: make [target]"
@@ -34,10 +32,10 @@ usage:
 tags:
 	ctags -R src
 
-codebooks: | $(CODEBOOKS_DST)
-codebooks/%: $(CODEBOOKS_HOME)/%
-	mkdir -p codebooks
-	ln -s $< $@
+# codebooks: | $(CODEBOOKS_DST)
+# codebooks/%: $(CODEBOOKS_HOME)/%
+# 	mkdir -p codebooks
+# 	ln -s $< $@
 
 init: .env .work
 
