@@ -17,6 +17,7 @@ tags
 /logs
 /notebooks
 /tests
+Local.mk
 
 # Distribution / packaging
 *.egg*
