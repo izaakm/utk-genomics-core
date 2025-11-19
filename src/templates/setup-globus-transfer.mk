@@ -6,11 +6,15 @@ PROCESSED_DATA := $(UTK0192)/data/processed
 
 RUNID := $(shell basename $(realpath ..))
 
+TRANSFER_GROUPS := $(shell find * -maxdepth 0 -type d -exec basename {} \;)
+PROJECT_DIRS := $(shell find */* -maxdepth 0 -type d )
+
 # */<SAMPLE_PROJECT>
 SAMPLE_PROJECT := $(shell find * -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 
 # */*.GlobusTransferComplete
-GLOBUS_TRANSFER_COMPLETE := $(addsuffix .GlobusTransferComplete,$(wildcard */*))
+# GLOBUS_TRANSFER_COMPLETE := $(addsuffix .GlobusTransferComplete,$(wildcard */*))
+GLOBUS_TRANSFER_COMPLETE := $(foreach name,$(PROJECT_DIRS),$(name).GlobusTransferComplete)
 
 # $(info $(SAMPLE_PROJECT))
 
@@ -22,34 +26,52 @@ GLOBUS_COLLECTION := $(addprefix $(GLOBUS_DATA)/$(RUNID)/,$(SAMPLE_PROJECT))
 COLLECTION_INFO := $(GLOBUS_DATA)/$(RUNID)/COLLECTIONS
 
 
-# $(info $(RUNID))
-# $(info $(SAMPLE_PROJECT))
-# $(info $(GLOBUS_COLLECTION))
+$(info RUNID                    = $(RUNID))
+$(info SAMPLE_PROJECT           = $(SAMPLE_PROJECT))
+$(info GLOBUS_COLLECTION        = $(GLOBUS_COLLECTION))
+$(info GLOBUS_TRANSFER_COMPLETE = $(GLOBUS_TRANSFER_COMPLETE))
 
 # all: $(GLOBUS_COLLECTION)
 all: $(GLOBUS_TRANSFER_COMPLETE)
 
 # ============================================================
-# External project directories: external/*
+# All project directories
 # ============================================================
-external/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
+# UTK0233/%.GlobusTransferComplete UTK0330/%.GlobusTransferComplete:
+# 	echo "$(@)"
+
+$(foreach name,$(TRANSFER_GROUPS),$(name)/%.GlobusTransferComplete): | $(GLOBUS_DATA)/$(RUNID)/%
 	touch "$(@)"
 
-$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/external/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+# $(GLOBUS_DATA)/$(RUNID)/%: | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+# 	echo "$(@)"
+
+$(GLOBUS_DATA)/$(RUNID)/%: | $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
 	@echo "Sample Project: $(*)"
-	cp -lr "external/$(*)" "$(@D)/"
+	cp -lr */"$(*)" "$(@D)/"
 	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
 
-# ============================================================
-# Unknown Project directory: unknown_project/*
-# ============================================================
-unknown_project/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
-	touch "$(@)"
+# # ============================================================
+# # External project directories: external/*
+# # ============================================================
+# external/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
+# 	touch "$(@)"
+#
+# $(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/external/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+# 	@echo "Sample Project: $(*)"
+# 	cp -lr "external/$(*)" "$(@D)/"
+# 	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
 
-$(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
-	@echo "Sample Project: $(*)"
-	cp -lr "unknown_project/$(*)" "$(@D)/"
-	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
+# # ============================================================
+# # Unknown Project directory: unknown_project/*
+# # ============================================================
+# unknown_project/%.GlobusTransferComplete: | $(GLOBUS_DATA)/$(RUNID)/%
+# 	touch "$(@)"
+#
+# $(GLOBUS_DATA)/$(RUNID)/%: | $(PROCESSED_DATA)/$(RUNID)/transfer/unknown_project/% $(GLOBUS_DATA)/$(RUNID) $(COLLECTION_INFO)
+# 	@echo "Sample Project: $(*)"
+# 	cp -lr "unknown_project/$(*)" "$(@D)/"
+# 	echo "$(RUNID) - $(*)" >> "$(@D)/COLLECTIONS"
 
 # ============================================================
 $(COLLECTION_INFO):
