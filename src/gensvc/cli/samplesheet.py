@@ -33,15 +33,13 @@ def cli(args):
             # Assume it's a run ID.
             seqrun = SequencingRun(args.path_or_runid)
             path_to_samplesheet = seqrun.rundir.path_to_samplesheet
+        if not os.path.isfile(path_to_samplesheet):
+            sys.tracebacklimit = 0
+            raise FileNotFoundError(f'SampleSheet file not found: {path_to_samplesheet}')
     elif args.subcommand == "validate":
         raise NotImplementedError('SampleSheet validation not yet implemented.')
 
-    if not os.path.isfile(path_to_samplesheet):
-        sys.tracebacklimit = 0
-        raise FileNotFoundError(f'SampleSheet file not found: {path_to_samplesheet}')
-
-    print(f'Path to SampleSheet: {path_to_samplesheet}')
-
+    # Load the sample sheet.
     if args.src_sample_sheet:
         sample_sheet = illumina.read_sample_sheet(args.src_sample_sheet)
     elif path_to_samplesheet:
