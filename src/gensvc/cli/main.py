@@ -324,6 +324,18 @@ def get_parser():
             help='Sample sheet format.'
         )
         p.add_argument(
+            '--fix-sample-names',
+            help='Fix sample names to be compatible with Illumina requirements.',
+            action='store_true',
+            default=True,
+        )
+        p.add_argument(
+            '--no-fix-sample-names',
+            dest='fix_sample_names',
+            action='store_false',
+            help='Do not fix sample names.'
+        )
+        p.add_argument(
             '--projectname-to-sampleproject', '-p',
             dest='projectname_to_sampleproject',
             action='store_true',
