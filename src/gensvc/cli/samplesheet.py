@@ -54,6 +54,10 @@ def cli(args):
     ############################################################
     # Data section
     ############################################################
+    if args.fix_sample_names:
+        sample_sheet.Data.fix_sample_names()
+        sample_sheet.Data.verify_sample_names()
+
     if args.check_duplicate_indexes:
         dupes = sample_sheet.duplicate_indexes()
         if dupes.empty:
