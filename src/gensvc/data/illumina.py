@@ -170,7 +170,9 @@ def parse_dict_section(lines, name=None, cls=None):
     return cls(data, name=name)
 
 
-def parse_table_section(lines, name=None):
+def parse_table_section(lines, name=None, cls=None):
+    if cls is None:
+        cls = TableSection
     if lines:
         columns = lines.pop(0).split(',')
         rows = [line.split(',') for line in lines]
@@ -184,7 +186,7 @@ def parse_table_section(lines, name=None):
     else:
         # Return an empty DataFrame for constistency with `parse_dict_section`.
         data = pd.DataFrame()
-    return TableSection(data, name=name)
+    return cls(data, name=name)
 
 
 def looks_like_samplesheet(path):
@@ -703,7 +705,101 @@ class TableSection:
             print(text, file=file)
 
 
+class DataSection(TableSection):
+    '''
+    Data Section
+    ============
+    The data section is required. Headers for the data section should be [Data]
+    or [data] for sample sheet v1 and [BCLConvert_Data] for sample sheet v2.
+    BCL Convert uses columns in the Data section to sort samples and index
+    adapters. [1]
+
+    Column          Description
+    --------------  --------------
+    Lane            [Optional] When specified, the software generates FASTQ
+                    files only for the samples with the specified lane number.
+                    Only one valid integer is allowed, as defined by the
+                    RunInfo.xml.
+    Sample_ID       The sample ID.
+    index           The Index 1 (i7) index adapter sequence.
+    index2          The Index 2 (i5) Index adapter sequence.
+    Sample_Project  Optional Can only contain alphanumeric characters, dashes,
+                    and underscores. Duplicate data strings with different
+                    cases (eg, sampleProject and SampleProject) are not
+                    allowed. If these data strings are used, analysis fails.
+                    This column is not used unless you are using the command
+                    line option --bcl-sampleproject-subdirectories. See Command
+                    Line Options for more information on command line options.
+
+    [1]: https://support-docs.illumina.com/SW/BCL_Convert/Content/SW/BCLConvert/SampleSheets_swBCL.htm
+    '''
+    def fix_sample_names(self):
+        for colname in ['Sample_ID', 'Sample_Name']:
+            if not colname in self.data.columns:
+                continue
+            self.data[colname] = self.data[colname].str.replace(r'\W', '_', regex=True)
+
+    def verify_sample_names(self):
+        for colname in ['Sample_ID', 'Sample_Name']:
+            if colname not in self.data.columns:
+                continue
+            if not self.data[colname].is_unique:
+                is_dupe = self.data[colname].duplicated(keep=False)
+                dupes = self.data.loc[is_dupe, colname].to_list()
+                raise ValueError(f'Found duplicates in "{colname}": {dupes}')
+            if not self.data[colname].str.contains(r'^\w+$', regex=True).all():
+                mask = self.data[colname].str.contains(r'^\w+$', regex=True)
+                bad_names = self.data.loc[~mask, colname].to_list()
+                raise ValueError(f'Found illegal characters in "{colname}": {bad_names}')
+
+
 class BaseSampleSheet:
+    '''
+    Base class for Illumina Sample Sheets.
+
+
+    Sample Sheet Versions
+    =====================
+    ...
+
+
+    Settings Section
+    ================
+    ...
+
+
+    Data Section
+    ============
+    The data section is required. Headers for the data section should be [Data]
+    or [data] for sample sheet v1 and [BCLConvert_Data] for sample sheet v2.
+    BCL Convert uses columns in the Data section to sort samples and index
+    adapters. [1]
+
+    Column          Description
+    --------------  --------------
+    Lane            [Optional] When specified, the software generates FASTQ
+                    files only for the samples with the specified lane number.
+                    Only one valid integer is allowed, as defined by the
+                    RunInfo.xml.
+    Sample_ID       The sample ID.
+    index           The Index 1 (i7) index adapter sequence.
+    index2          The Index 2 (i5) Index adapter sequence.
+    Sample_Project  Optional Can only contain alphanumeric characters, dashes,
+                    and underscores. Duplicate data strings with different
+                    cases (eg, sampleProject and SampleProject) are not
+                    allowed. If these data strings are used, analysis fails.
+                    This column is not used unless you are using the command
+                    line option --bcl-sampleproject-subdirectories. See Command
+                    Line Options for more information on command line options.
+
+
+    Sample Sheet Creation
+    =====================
+    ...
+
+
+    [1]: https://support-docs.illumina.com/SW/BCL_Convert/Content/SW/BCLConvert/SampleSheets_swBCL.htm
+    '''
     def __init__(self, path=None, content=None):
         self.path = path      # Use setter.
         self._content = content or {}
@@ -1025,7 +1121,8 @@ class SampleSheetv1(BaseSampleSheet):
             # self._data = parse_table_section(self.content[name], name=name)
             self._data = parse_table_section(
                 self.content.get(name, []),
-                name=name
+                name=name,
+                cls=DataSection
             )
         return self._data
     
@@ -1120,7 +1217,8 @@ class SampleSheetv2(BaseSampleSheet):
             # self._bclconvert_data = parse_table_section(self.content[name], name=name)
             self._bclconvert_data = parse_table_section(
                 self.content.get(name, []),
-                name=name
+                name=name,
+                cls=DataSection
             )
         return self._bclconvert_data
 
@@ -1136,7 +1234,8 @@ class SampleSheetv2(BaseSampleSheet):
             # self._cloud_data = parse_table_section(self.content[name], name=name)
             self._cloud_data = parse_table_section(
                 self.content.get(name, []),
-                name=name
+                name=name,
+                cls=TableSection
             )
         return self._cloud_data
     
