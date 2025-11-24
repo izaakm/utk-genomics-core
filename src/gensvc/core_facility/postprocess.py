@@ -158,15 +158,18 @@ def cli_extract_bclconvert_stats(args):
         outdir = args.outdir
 
     # Extract tables from legacy stats.
+    logger.info('Extracting tables from BCL Convert legacy stats...')
     tables = bclconvert.extract_tables_from_legacy_stats(args.bclconvert_directory)
     write_bclconvert_tables_from_legacy_stats(tables, outdir, dry_run=args.dry_run)
 
     # Create the "Suggested Barcodes" report.
+    logger.info('Extracting tables from BCL Convert Reports...')
     bclconvert_reports = bclconvert.BCLConvertReports(args.bclconvert_directory / 'Reports')
 
     demultiplex_stats = bclconvert_reports.load_demultiplex_stats()
     top_unknown_barcodes = bclconvert_reports.load_top_unknown_barcodes()
 
+    logger.info('Generating Suggested Barcodes report...')
     suggested_barcodes = bclconvert.report_suggested_barcodes(
         demultiplex_stats,
         top_unknown_barcodes
