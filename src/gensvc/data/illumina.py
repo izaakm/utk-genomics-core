@@ -1054,7 +1054,7 @@ class BaseSampleSheet:
     def to_csv(self, *args, file=None, **kwargs):
         text = ''
         for section in self.sections:
-            text += section.to_csv(*args, file=file, **kwargs)
+            text += section.to_csv(*args, **kwargs)
         if file is None:
             return text
         else:
