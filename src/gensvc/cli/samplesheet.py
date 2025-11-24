@@ -173,12 +173,16 @@ def cli(args):
             sys.tracebacklimit = 0
             raise FileExistsError(f'Output file already exists: {args.output} (use --force to overwrite)')
         # Write to file.
-        print('[NOT IMPLEMENTED] Writing SampleSheet to:', args.output)
+        # print('[NOT IMPLEMENTED] Writing SampleSheet to:', args.output)
+        with open(args.output, 'w') as f:
+            sample_sheet.to_csv(file=f)
     elif path_to_samplesheet:
         if os.path.exists(path_to_samplesheet) and not args.force:
             sys.tracebacklimit = 0
             raise FileExistsError(f'Output file already exists: {path_to_samplesheet} (use --force to overwrite)')
         # Overwrite existing samplesheet.
-        print('[NOT IMPLEMENTED] Overwriting SampleSheet at:', path_to_samplesheet)
+        # print('[NOT IMPLEMENTED] Overwriting SampleSheet at:', path_to_samplesheet)
+        with open(path_to_samplesheet, 'w') as f:
+            sample_sheet.to_csv(file=f)
 
     return 0
