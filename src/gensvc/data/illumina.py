@@ -735,9 +735,12 @@ class DataSection(TableSection):
     '''
     def fix_sample_names(self):
         for colname in ['Sample_ID', 'Sample_Name']:
-            if not colname in self.data.columns:
+            if colname not in self.data.columns:
                 continue
             self.data[colname] = self.data[colname].str.replace(r'\W', '_', regex=True)
+        if 'Sample_ID' in self.data.columns and 'Sample_Name' not in self.data.columns:
+            # Add the 'Sample_Name' column for compatibility with 'bclconvert --sample-name-column-enabled true'.
+            self.data['Sample_Name'] = self.data['Sample_ID']
 
     def verify_sample_names(self):
         for colname in ['Sample_ID', 'Sample_Name']:
