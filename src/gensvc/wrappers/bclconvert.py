@@ -478,7 +478,7 @@ def extract_tables_from_legacy_stats(bclconvert_directory):
     return tables
 
 
-def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
+def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes, max_mismatches=2):
     '''
     Check each index ("barcode") for each sample in the demultiplex stats
     against the top unknown barcodes. If the index matches any of the unknown
@@ -541,7 +541,7 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
     # Store list of records for output.
     records = []
     # Keep track of barcodes with a unique integer ID.
-    barcode_ids = {}
+    unknown_bc_ids = {}
     bi = 1
     # First, iterate over each lane.
     lanes = sorted(set(demultiplex_stats['Lane']))
@@ -552,17 +552,18 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
         unknown_barcodes_lane = top_unknown_barcodes.query(f'Lane=={lane}')
         # Next, iterate over the samples in that lane.
         for i, sample in summary.iterrows():
+            # You want to know if the SAMPLE BARCODE matches any of the barcode
+            # sequences read by the instrument; the barcodes read by the
+            # instrument are, unfortunately, called UNKNOWN, ie, *unknown sample*.
             if sample['SampleID'] == 'Undetermined':
                 continue
-            # You want to know if this sequence matches the *truth*, which is,
-            # unfortunately, named "Unknown barcode".
-            b2 = illumina.Barcode(sequence=sample['Index'])
+            sample_bc = illumina.Barcode(sequence=sample['Index'])
             rec = {
                 'Lane': sample['Lane'],
                 'SampleID': sample['SampleID'],
                 'Barcode': sample['Index'],
-                'i7': str(b2.i7),
-                'i5': str(b2.i5),
+                'i7': str(sample_bc.i7),
+                'i5': str(sample_bc.i5),
                 'Read_count': sample['# Reads']
             }
             if 'Sample_Project' in sample.index:
@@ -570,23 +571,37 @@ def report_suggested_barcodes(demultiplex_stats, top_unknown_barcodes):
 
             # Then, iterate over the "unknown" barcodes, one at a time.
             for j, unknown in unknown_barcodes_lane.iterrows():
-                # This is the *real* sequence. You want to check if there is a
-                # variation of the sample index that matches this one.
-                b1 = illumina.Barcode(i7=unknown['index'], i5=unknown['index2'])
-                matches = illumina.compare_barcodes(b1, b2)
-                for method, match in matches.items():
-                    if str(match) not in barcode_ids:
-                        barcode_ids[str(match)] = bi
+                # The UNKNOWN BARCODE is what the instrument read, but was not matched to a SAMPLE BARCODE.
+                unknown_bc = illumina.Barcode(i7=unknown['index'], i5=unknown['index2'])
+                # Check if there is a **reverse-complement form of the SAMPLE
+                # BARCODE** that matches the UNKNOWN BARCODE.
+                matches = illumina.compare_barcodes(unknown_bc, sample_bc, max_mismatches=max_mismatches)
+                # ^ matches = [{'method': ..., 'barcode': ..., 'reverse_complement': ..., 'hamming': ...}, ...]
+                for item in matches:
+                    method = item['method']
+                    reverse_bc = illumina.Barcode(item['reverse_complement'])
+                    dist = item['hamming']
+                    bc_key = str(unknown_bc)
+                    if bc_key not in unknown_bc_ids.keys():
+                        unknown_bc_ids[bc_key] = bi
                         bi += 1
                     tmp = {**rec}
-                    tmp['Reverse_complement'] = method
-                    tmp['Unknown_barcode'] = str(b1)
-                    tmp['Unknown_i7'] = str(b1.i7)
-                    tmp['Unknown_i5'] = str(b1.i5)
-                    tmp['Unknown_barcode_ID'] = barcode_ids[str(match)]
+                    tmp['Unknown_barcode'] = str(unknown_bc)
+                    tmp['Unknown_i7'] = str(unknown_bc.i7)
+                    tmp['Unknown_i5'] = str(unknown_bc.i5)
+                    tmp['Unknown_barcode_ID'] = unknown_bc_ids[bc_key]
+
+                    tmp['Reverse_complement_method'] = method
+                    if method in ['i7', 'i5', 'both', 'full']:
+                        # Ignore 'method=="None"'.
+                        tmp['Reverse_complement_barcode'] = str(reverse_bc)
+                        tmp['Reverse_complement_i7'] = str(reverse_bc.i7)
+                        tmp['Reverse_complement_i5'] = str(reverse_bc.i5)
+
                     tmp['Unknown_read_count'] = unknown['# Reads']
                     tmp['Diff_count'] = unknown['# Reads'] - sample['# Reads']
                     tmp['Log2_FoldDiff'] = np.log2(unknown['# Reads'] / max(sample['# Reads'], 1)).round(2)
+                    tmp['Hamming_distance'] = dist
                     records.append(tmp)
 
     records = sorted(records, key=lambda d: (d['Unknown_barcode_ID'], d['Lane']))
