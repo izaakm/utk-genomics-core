@@ -1392,18 +1392,25 @@ class Barcode:
 
 
 # [TODO] Move to illumina/helpers.py
-def compare_barcodes(b1, b2, verbose=False):
+def compare_barcodes(b1, b2, max_mismatches=0, verbose=False):
     '''
     Check if any reverse complemented form of "b2" matches "b1".
+    IE, if the Hamming distance between b1 and b2 is < threshold, they "match".
     '''
-    matches = {}
+    b1 = str(b1)
+    # matches = {}
+    matches = []
     for method in ['None', 'i7', 'i5', 'both', 'full']:
-        rc = b2.reverse_complement(method=method)
-        if str(b1) == str(rc):
-            if verbose:
-                print(f'Original : {b1} .. {b2}')
-                print(f'Match    : {b1} <- {rc}')
-            matches[method] = rc
+        rc = str(b2.reverse_complement(method=method))
+        # if str(b1) == str(rc):
+        #     if verbose:
+        #         print(f'Original : {b1} .. {b2}')
+        #         print(f'Match    : {b1} <- {rc}')
+        #     matches[method] = rc
+        d = hamming(b1, rc)
+        if d <= max_mismatches:
+            # matches[method] = rc
+            matches.append({'method': method, 'barcode': b1, 'reverse_complement': rc, 'hamming': d})
     return matches
 
 
