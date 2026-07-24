@@ -1285,10 +1285,7 @@ class SampleSheetv2(BaseSampleSheet):
         -------
         None
         '''
-        # print(self.Cloud_Data.data)
-        print(self.BCLConvert_Data.data)
         mapper = get_sample_project(self.Cloud_Data.data, project_col='ProjectName')
-        print(mapper)
         # This should set the data in place.
         set_sample_project(self.BCLConvert_Data.data, mapper)
         return None
