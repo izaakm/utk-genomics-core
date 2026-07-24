@@ -56,6 +56,13 @@ regex_runid = re.compile(r'[^\/]*\d{6,8}[^\/]*')  # DEPRECATED
 # Sample sheet section header.
 re_section = re.compile(r'^\[\s*(\w+)\s*]')
 
+# Allowed characters in project and sample(?) names: alphanumeric characters, dashes, and underscores
+_allowed = r'a-zA-Z0-9_\-'
+# Whole string is alpha/dash (for validation):
+alpha_dash     = re.compile(rf'^[{_allowed}]+$')
+# Any char is NOT alpha/dash (for substitution):
+alpha_dash_inv = re.compile(rf'[^{_allowed}]')
+
 
 logger = logging.getLogger(__name__)
 
@@ -737,7 +744,7 @@ class DataSection(TableSection):
         for colname in ['Sample_ID', 'Sample_Name']:
             if colname not in self.data.columns:
                 continue
-            self.data[colname] = self.data[colname].str.replace(r'\W', '_', regex=True)
+            self.data[colname] = self.data[colname].str.replace(alpha_dash_inv, '_', regex=True)
         if 'Sample_ID' in self.data.columns and 'Sample_Name' not in self.data.columns:
             # Add the 'Sample_Name' column for compatibility with 'bclconvert --sample-name-column-enabled true'.
             self.data['Sample_Name'] = self.data['Sample_ID']
@@ -747,11 +754,13 @@ class DataSection(TableSection):
             if colname not in self.data.columns:
                 continue
             if not self.data[colname].is_unique:
+                # Duplicate names found ~> show the duplicates.
                 is_dupe = self.data[colname].duplicated(keep=False)
                 dupes = self.data.loc[is_dupe, colname].to_list()
                 raise ValueError(f'Found duplicates in "{colname}": {dupes}')
-            if not self.data[colname].str.contains(r'^\w+$', regex=True).all():
-                mask = self.data[colname].str.contains(r'^\w+$', regex=True)
+            if not self.data[colname].str.contains(alpha_dash, regex=True).all():
+                # Bad sample names found ~> show the bad names.
+                mask = self.data[colname].str.contains(alpha_dash, regex=True)
                 bad_names = self.data.loc[~mask, colname].to_list()
                 raise ValueError(f'Found illegal characters in "{colname}": {bad_names}')
 
@@ -1276,7 +1285,10 @@ class SampleSheetv2(BaseSampleSheet):
         -------
         None
         '''
+        # print(self.Cloud_Data.data)
+        print(self.BCLConvert_Data.data)
         mapper = get_sample_project(self.Cloud_Data.data, project_col='ProjectName')
+        print(mapper)
         # This should set the data in place.
         set_sample_project(self.BCLConvert_Data.data, mapper)
         return None
