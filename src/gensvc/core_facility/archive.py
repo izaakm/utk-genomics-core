@@ -71,6 +71,13 @@ def cli(args):
         if inst_dir.is_dir():
             logger.info('Instrument Directory: %s' % inst_dir)
 
+            # Check for CopyComplete.txt. If the CopyComplete.txt file is NOT
+            # present, then the run is either in progress, or already archived.
+            copy_complete = inst_dir / 'CopyComplete.txt'
+            if not copy_complete.exists():
+                logger.info(f'Missing "CopyComplete.txt", skipping: {copy_complete}')
+                continue
+
             # Returns a list of (script_path, script) tuples.
             script_data = archive(inst_dir.iterdir(), config.GENSVC_UTSTOR_DIR)
 
