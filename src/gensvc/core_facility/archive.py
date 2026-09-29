@@ -31,6 +31,13 @@ def archive(rundir_ls, archive_dir):
             logger.debug('Not a run directory, skipping: %s' % rundir)
             continue
 
+        # Check for CopyComplete.txt. If the CopyComplete.txt file is NOT
+        # present, then the run is either in progress, or already archived.
+        copy_complete = rundir / 'CopyComplete.txt'
+        if not copy_complete.exists():
+            logger.info(f'Missing "CopyComplete.txt", skipping: {rundir}')
+            continue
+
         run_date = re_rundir.match(rundir.name).group('date')
         if len(run_date) == 8:
             # iSeq Runs
@@ -67,22 +74,22 @@ def cli(args):
     logger.debug("Illumina Directory: %s" % config.GENSVC_ILLUMINA_DIR)
     logger.debug("UTStoR Directory: %s" % config.GENSVC_UTSTOR_DIR)
 
+    # Iterate through instrument directories.
     for inst_dir in config.GENSVC_ILLUMINA_DIR.glob('*Runs'):
+        logger.info('Checking for %s...' % inst_dir)
         if inst_dir.is_dir():
-            logger.info('Instrument Directory: %s' % inst_dir)
-
-            # Check for CopyComplete.txt. If the CopyComplete.txt file is NOT
-            # present, then the run is either in progress, or already archived.
-            copy_complete = inst_dir / 'CopyComplete.txt'
-            if not copy_complete.exists():
-                logger.info(f'Missing "CopyComplete.txt", skipping: {copy_complete}')
-                continue
+            logger.info('Found %s' % inst_dir)
 
             # Returns a list of (script_path, script) tuples.
             script_data = archive(inst_dir.iterdir(), config.GENSVC_UTSTOR_DIR)
 
             for script_path, script_content in script_data:
-                if not script_path.exists() or args.overwrite:
+                if args.dry_run:
+                    if script_path.exists():
+                        print(f'[DRYRUN] Script already exists: {script_path}')
+                    else:
+                        print(f'[DRYRUN] Creating script: {script_path}')
+                elif not script_path.exists() or args.overwrite:
                     with open(script_path, 'w') as f:
                         print(script_content, file=f)
                         logger.info(f'Wrote job script: {script_path}')
