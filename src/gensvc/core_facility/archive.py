@@ -76,9 +76,12 @@ def cli(args):
 
     # Iterate through instrument directories.
     for inst_dir in config.GENSVC_ILLUMINA_DIR.glob('*Runs'):
-        logger.info('Checking for %s...' % inst_dir)
+        if inst_dir.name == "RestoredRuns":
+            logging.info('Skipping "restored" directory: %s' % inst_dir)
+            continue
+
+        logger.info('Checking %s...' % inst_dir)
         if inst_dir.is_dir():
-            logger.info('Found %s' % inst_dir)
 
             # Returns a list of (script_path, script) tuples.
             script_data = archive(inst_dir.iterdir(), config.GENSVC_UTSTOR_DIR)
